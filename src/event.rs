@@ -6,6 +6,8 @@ use deno_core::serde::Serialize;
 use winit::dpi::PhysicalPosition;
 use winit::dpi::PhysicalSize;
 
+use winit::event::ScanCode;
+use winit::event::VirtualKeyCode;
 use winit::event::AxisId;
 use winit::event::ButtonId;
 use winit::event::ElementState;
@@ -17,10 +19,28 @@ use winit::event::TouchPhase;
 
 use crate::helpers::hash;
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase", tag = "type", content = "value", remote = "MouseScrollDelta")]
+pub enum MouseScrollDeltaDef {
+  LineDelta(f32, f32),
+  PixelDelta(PhysicalPosition<f64>),
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase", remote = "KeyboardInput")]
+pub struct KeyboardInputDef {
+  scancode: ScanCode,
+  state: ElementState,
+  virtual_keycode: Option<VirtualKeyCode>,
+}
+
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase", tag = "type", content = "value")]
 pub enum Event {
   NewEvents(StartCause),
+  #[serde(rename_all = "camelCase")]
   WindowEvent { window_id: u64, event: WindowEvent },
+  #[serde(rename_all = "camelCase")]
   DeviceEvent { device_id: u64, event: DeviceEvent },
   UserEvent,
   Suspended,
@@ -61,13 +81,16 @@ impl From<winit::event::Event<'_, ()>> for Event {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase", tag = "type", content = "value")]
 pub enum StartCause {
+  #[serde(rename_all = "camelCase")]
   ResumeTimeReached {
     #[serde(with = "serde_millis")]
     start: Instant,
     #[serde(with = "serde_millis")]
     requested_resume: Instant,
   },
+  #[serde(rename_all = "camelCase")]
   WaitCancelled {
     #[serde(with = "serde_millis")]
     start: Instant,
@@ -102,6 +125,7 @@ impl From<winit::event::StartCause> for StartCause {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase", tag = "type", content = "value")]
 pub enum WindowEvent {
   Resized(PhysicalSize<u32>),
   Moved(PhysicalPosition<i32>),
@@ -112,43 +136,54 @@ pub enum WindowEvent {
   HoveredFileCancelled,
   ReceivedCharacter(char),
   Focused(bool),
+  #[serde(rename_all = "camelCase")]
   KeyboardInput {
     device_id: u64,
+    #[serde(with = "KeyboardInputDef")]
     input: KeyboardInput,
     is_synthetic: bool,
   },
   ModifiersChanged(ModifiersState),
+  #[serde(rename_all = "camelCase")]
   CursorMoved {
     device_id: u64,
     position: PhysicalPosition<f64>,
   },
+  #[serde(rename_all = "camelCase")]
   CursorEntered {
     device_id: u64,
   },
+  #[serde(rename_all = "camelCase")]
   CursorLeft {
     device_id: u64,
   },
+  #[serde(rename_all = "camelCase")]
   MouseWheel {
     device_id: u64,
+    #[serde(with = "MouseScrollDeltaDef")]
     delta: MouseScrollDelta,
     phase: TouchPhase,
   },
+  #[serde(rename_all = "camelCase")]
   MouseInput {
     device_id: u64,
     state: ElementState,
     button: MouseButton,
   },
+  #[serde(rename_all = "camelCase")]
   TouchpadPressure {
     device_id: u64,
     pressure: f32,
     stage: i64,
   },
+  #[serde(rename_all = "camelCase")]
   AxisMotion {
     device_id: u64,
     axis: AxisId,
     value: f64,
   },
   Touch(Touch),
+  #[serde(rename_all = "camelCase")]
   ScaleFactorChanged {
     scale_factor: f64,
     new_inner_size: PhysicalSize<u32>,
@@ -157,6 +192,7 @@ pub enum WindowEvent {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Touch {
   device_id: u64,
   phase: TouchPhase,
@@ -184,7 +220,9 @@ impl From<winit::event::Touch> for Touch {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase", tag = "type", content = "value")]
 pub enum Force {
+  #[serde(rename_all = "camelCase")]
   Calibrated {
     force: f64,
     max_possible_force: f64,
@@ -211,6 +249,7 @@ impl From<winit::event::Force> for Force {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub enum Theme {
   Dark,
   Light,
@@ -331,6 +370,7 @@ impl From<winit::event::WindowEvent<'_>> for WindowEvent {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase", tag = "type", content = "value")]
 pub enum DeviceEvent {
   Added,
   Removed,
@@ -338,6 +378,7 @@ pub enum DeviceEvent {
     delta: (f64, f64),
   },
   MouseWheel {
+    #[serde(with = "MouseScrollDeltaDef")]
     delta: MouseScrollDelta,
   },
   Motion {
@@ -348,6 +389,7 @@ pub enum DeviceEvent {
     button: ButtonId,
     state: ElementState,
   },
+  #[serde(with = "KeyboardInputDef")]
   Key(KeyboardInput),
   Text {
     codepoint: char,

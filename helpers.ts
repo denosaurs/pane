@@ -11,11 +11,11 @@ export function deserialize(text: string): unknown {
   );
 }
 
-export function serialize(value: unknown): string {
+export function serialize(value: unknown, space?: number): string {
   return JSON.stringify(value, (_, v) => {
     if (typeof v === "bigint") {
       v = v.toString() + "n";
     }
     return v;
-  }).replace(/(?:\")(\d{16,})(?:n\")/g, "$1");
+  }, space).replace(/(?:\")(\d{16,})(?:n\")/g, "$1");
 }

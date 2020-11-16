@@ -3,12 +3,18 @@ use deno_core::error::AnyError;
 
 use winit::event_loop::EventLoop;
 
+use winit::dpi::Position;
+use winit::dpi::PhysicalPosition;
+use winit::dpi::Size;
+use winit::dpi::PhysicalSize;
+
 use winit::window::Icon;
+use winit::window::CursorIcon;
 
 use crate::helpers::hash;
 
 pub struct Window {
-  pub window: winit::window::Window,
+  window: winit::window::Window,
 }
 
 impl Window {
@@ -23,11 +29,77 @@ impl Window {
     hash(self.window.id())
   }
 
-  pub fn set_title(&self, title: &str) {
-    self.window.set_title(title);
+  pub fn scale_factor(&self) -> f64 {
+    self.window.scale_factor()
   }
 
-  pub fn set_icon(
+  pub fn request_redraw(&self) {
+    self.window.request_redraw()
+  }
+
+  pub fn inner_position(&self) -> Result<PhysicalPosition<i32>, AnyError> {
+    match self.window.inner_position() {
+      Ok(position) => Ok(position),
+      Err(err) => Err(anyhow!(err))
+    }
+  }
+
+  pub fn outer_position(&self) -> Result<PhysicalPosition<i32>, AnyError> {
+    match self.window.outer_position() {
+      Ok(position) => Ok(position),
+      Err(err) => Err(anyhow!(err))
+    }
+  }
+
+  pub fn set_outer_position(&self, position: Position) {
+    self.window.set_outer_position(position)
+  }
+
+  pub fn inner_size(&self) -> PhysicalSize<u32> {
+    self.window.inner_size()
+  }
+
+  pub fn set_inner_size(&self, size: Size) {
+    self.window.set_inner_size(size)
+  }
+
+  pub fn outer_size(&self) -> PhysicalSize<u32> {
+    self.window.outer_size()
+  }
+
+  pub fn set_min_inner_size(&self, min_size: Option<Size>) {
+    self.window.set_min_inner_size(min_size)
+  }
+
+  pub fn set_max_inner_size(&self, max_size: Option<Size>) {
+    self.window.set_max_inner_size(max_size)
+  }
+
+  pub fn set_title(&self, title: &str) {
+    self.window.set_title(title)
+  }
+
+  pub fn set_resizable(&self, resizable: bool) {
+    self.window.set_resizable(resizable)
+  }
+
+  pub fn set_minimized(&self, minimized: bool) {
+    self.window.set_minimized(minimized)
+  }
+
+  pub fn set_maximized(&self, maximized: bool) {
+    self.window.set_maximized(maximized)
+  }
+
+  pub fn set_decorations(&self, decorations: bool) {
+    self.window.set_decorations(decorations)
+  }
+
+  pub fn set_always_on_top(&self, always_on_top: bool) {
+    self.window.set_always_on_top(always_on_top)
+  }
+
+  pub fn set_window_icon(
     &self,
     rgba: Vec<u8>,
     width: u64,
@@ -40,5 +112,31 @@ impl Window {
       }
       Err(err) => Err(anyhow!(err)),
     }
+  }
+
+  pub fn set_ime_position(&self, position: Position) {
+    self.window.set_ime_position(position)
+  }
+
+  pub fn set_cursor_icon(&self, cursor: CursorIcon) {
+    self.window.set_cursor_icon(cursor)
+  }
+
+  pub fn set_cursor_position(&self, position: Position) -> Result<(), AnyError> {
+    match self.window.set_cursor_position(position) {
+      Ok(()) => Ok(()),
+      Err(err) => Err(anyhow!(err))
+    }
+  }
+
+  pub fn set_cursor_grab(&self, grab: bool) -> Result<(), AnyError> {
+    match self.window.set_cursor_grab(grab) {
+      Ok(()) => Ok(()),
+      Err(err) => Err(anyhow!(err))
+    }
+  }
+
+  pub fn set_cursor_visible(&self, visible: bool) {
+    self.window.set_cursor_visible(visible)
   }
 }
