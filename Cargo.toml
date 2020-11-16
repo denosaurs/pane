@@ -1,0 +1,15 @@
+[package]
+name = "pane"
+version = "0.1.0"
+authors = ["Elias Sjögreen"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+deno_core = "0.67.0"
+deno_json_op = "0.1.1"
+winit = { version = "0.23.0", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_millis = "0.1.1"
