@@ -49,6 +49,46 @@ pub enum SizeDef {
   Logical(LogicalSize<f64>),
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", remote = "CursorIcon")]
+pub enum CursorIconDef {
+  Default,
+  Crosshair,
+  Hand,
+  Arrow,
+  Move,
+  Text,
+  Wait,
+  Help,
+  Progress,
+  NotAllowed,
+  ContextMenu,
+  Cell,
+  VerticalText,
+  Alias,
+  Copy,
+  NoDrop,
+  Grab,
+  Grabbing,
+  AllScroll,
+  ZoomIn,
+  ZoomOut,
+  EResize,
+  NResize,
+  NeResize,
+  NwResize,
+  SResize,
+  SeResize,
+  SwResize,
+  WResize,
+  EwResize,
+  NsResize,
+  NeswResize,
+  NwseResize,
+  ColResize,
+  RowResize,
+}
+
 thread_local! {
   static EVENT_LOOP: RefCell<EventLoop<()>> = RefCell::new(EventLoop::new());
   static WINDOW_MAP: RefCell<HashMap<u64, Window>> = RefCell::new(HashMap::new());
@@ -477,7 +517,7 @@ fn window_set_cursor_icon(
 ) -> Result<Value, AnyError> {
   let id = json["id"].as_u64().unwrap();
   let cursor: CursorIcon =
-    serde_json::from_value(json["cursor"].to_owned()).unwrap();
+  CursorIconDef::deserialize(json["cursor"].to_owned()).unwrap();
 
   WINDOW_MAP.with(|cell| {
     let window_map = cell.borrow();

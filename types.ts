@@ -12,7 +12,42 @@ export type Size = { physical: PhysicalSize } | { logical: LogicalSize };
 export type PhysicalSize = { width: number; height: number };
 export type LogicalSize = { width: number; height: number };
 
-export type CursorIcon = unknown;
+export type CursorIcon =
+  | "default"
+  | "crosshair"
+  | "hand"
+  | "arrow"
+  | "move"
+  | "text"
+  | "wait"
+  | "help"
+  | "progress"
+  | "notAllowed"
+  | "contextMenu"
+  | "cell"
+  | "verticalText"
+  | "alias"
+  | "copy"
+  | "noDrop"
+  | "grab"
+  | "grabbing"
+  | "allScroll"
+  | "zoomIn"
+  | "zoomOut"
+  | "eResize"
+  | "nResize"
+  | "neResize"
+  | "nwResize"
+  | "sResize"
+  | "seResize"
+  | "swResize"
+  | "wResize"
+  | "ewResize"
+  | "nsResize"
+  | "neswResize"
+  | "nwseResize"
+  | "colResize"
+  | "rowResize";
 
 export type Event =
   | { type: "newEvents"; value: StartCause }
