@@ -7,7 +7,7 @@ const id = setInterval(() => {
   for (const event of EventLoop.Step()) {
     switch (event.type) {
       case "windowEvent":
-        console.log(window.setCursorIcon("hand"));
+        window.setCursorIcon("hand");
         console.log(serialize(event, 2));
         if (event.value.event.type === "closeRequested") {
           clearInterval(id);
