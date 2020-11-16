@@ -6,8 +6,6 @@ use deno_core::serde::Serialize;
 use winit::dpi::PhysicalPosition;
 use winit::dpi::PhysicalSize;
 
-use winit::event::ScanCode;
-use winit::event::VirtualKeyCode;
 use winit::event::AxisId;
 use winit::event::ButtonId;
 use winit::event::ElementState;
@@ -15,12 +13,19 @@ use winit::event::KeyboardInput;
 use winit::event::ModifiersState;
 use winit::event::MouseButton;
 use winit::event::MouseScrollDelta;
+use winit::event::ScanCode;
 use winit::event::TouchPhase;
+use winit::event::VirtualKeyCode;
 
 use crate::helpers::hash;
 
 #[derive(Serialize)]
-#[serde(rename_all = "camelCase", tag = "type", content = "value", remote = "MouseScrollDelta")]
+#[serde(
+  rename_all = "camelCase",
+  tag = "type",
+  content = "value",
+  remote = "MouseScrollDelta"
+)]
 pub enum MouseScrollDeltaDef {
   LineDelta(f32, f32),
   PixelDelta(PhysicalPosition<f64>),
@@ -39,9 +44,15 @@ pub struct KeyboardInputDef {
 pub enum Event {
   NewEvents(StartCause),
   #[serde(rename_all = "camelCase")]
-  WindowEvent { window_id: u64, event: WindowEvent },
+  WindowEvent {
+    window_id: u64,
+    event: WindowEvent,
+  },
   #[serde(rename_all = "camelCase")]
-  DeviceEvent { device_id: u64, event: DeviceEvent },
+  DeviceEvent {
+    device_id: u64,
+    event: DeviceEvent,
+  },
   UserEvent,
   Suspended,
   Resumed,

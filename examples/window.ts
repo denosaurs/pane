@@ -27,7 +27,13 @@ console.log(window.setDecorations(false));
 console.log(window.setDecorations(true));
 console.log(window.setAlwaysOnTop(false));
 console.log(window.setAlwaysOnTop(true));
-console.log(window.setWindowIcon(new Uint8Array(32 * 32 * 4).map(_ => Math.floor(Math.random() * 255)), 32, 32));
+console.log(
+  window.setWindowIcon(
+    new Uint8Array(32 * 32 * 4).map((_) => Math.floor(Math.random() * 255)),
+    32,
+    32,
+  ),
+);
 console.log(window.setImePosition({ physical: { x: 10, y: 10 } }));
 console.log(window.setImePosition({ logical: { x: 10, y: 10 } }));
 console.log(window.setCursorIcon("hand"));

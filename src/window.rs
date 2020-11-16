@@ -3,13 +3,13 @@ use deno_core::error::AnyError;
 
 use winit::event_loop::EventLoop;
 
-use winit::dpi::Position;
 use winit::dpi::PhysicalPosition;
-use winit::dpi::Size;
 use winit::dpi::PhysicalSize;
+use winit::dpi::Position;
+use winit::dpi::Size;
 
-use winit::window::Icon;
 use winit::window::CursorIcon;
+use winit::window::Icon;
 
 use crate::helpers::hash;
 
@@ -40,14 +40,14 @@ impl Window {
   pub fn inner_position(&self) -> Result<PhysicalPosition<i32>, AnyError> {
     match self.window.inner_position() {
       Ok(position) => Ok(position),
-      Err(err) => Err(anyhow!(err))
+      Err(err) => Err(anyhow!(err)),
     }
   }
 
   pub fn outer_position(&self) -> Result<PhysicalPosition<i32>, AnyError> {
     match self.window.outer_position() {
       Ok(position) => Ok(position),
-      Err(err) => Err(anyhow!(err))
+      Err(err) => Err(anyhow!(err)),
     }
   }
 
@@ -122,17 +122,20 @@ impl Window {
     self.window.set_cursor_icon(cursor)
   }
 
-  pub fn set_cursor_position(&self, position: Position) -> Result<(), AnyError> {
+  pub fn set_cursor_position(
+    &self,
+    position: Position,
+  ) -> Result<(), AnyError> {
     match self.window.set_cursor_position(position) {
       Ok(()) => Ok(()),
-      Err(err) => Err(anyhow!(err))
+      Err(err) => Err(anyhow!(err)),
     }
   }
 
   pub fn set_cursor_grab(&self, grab: bool) -> Result<(), AnyError> {
     match self.window.set_cursor_grab(grab) {
       Ok(()) => Ok(()),
-      Err(err) => Err(anyhow!(err))
+      Err(err) => Err(anyhow!(err)),
     }
   }
 

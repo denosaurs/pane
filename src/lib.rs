@@ -517,7 +517,7 @@ fn window_set_cursor_icon(
 ) -> Result<Value, AnyError> {
   let id = json["id"].as_u64().unwrap();
   let cursor: CursorIcon =
-  CursorIconDef::deserialize(json["cursor"].to_owned()).unwrap();
+    CursorIconDef::deserialize(json["cursor"].to_owned()).unwrap();
 
   WINDOW_MAP.with(|cell| {
     let window_map = cell.borrow();
