@@ -8,30 +8,20 @@ use winit::dpi::PhysicalSize;
 
 use winit::event::AxisId;
 use winit::event::ButtonId;
-use winit::event::DeviceEvent;
 use winit::event::ElementState;
-use winit::event::Event;
 use winit::event::KeyboardInput;
 use winit::event::ModifiersState;
 use winit::event::MouseButton;
 use winit::event::MouseScrollDelta;
-use winit::event::StartCause;
 use winit::event::TouchPhase;
-use winit::event::WindowEvent;
 
 use crate::helpers::hash;
 
 #[derive(Debug, Clone, Serialize)]
-pub enum SurfaceEvent {
-  NewEvents(SurfaceStartCause),
-  WindowEvent {
-    window_id: u64,
-    event: SurfaceWindowEvent,
-  },
-  DeviceEvent {
-    device_id: u64,
-    event: SurfaceDeviceEvent,
-  },
+pub enum Event {
+  NewEvents(StartCause),
+  WindowEvent { window_id: u64, event: WindowEvent },
+  DeviceEvent { device_id: u64, event: DeviceEvent },
   UserEvent,
   Suspended,
   Resumed,
@@ -41,33 +31,37 @@ pub enum SurfaceEvent {
   LoopDestroyed,
 }
 
-impl From<Event<'_, ()>> for SurfaceEvent {
-  fn from(event: Event<()>) -> Self {
+impl From<winit::event::Event<'_, ()>> for Event {
+  fn from(event: winit::event::Event<()>) -> Self {
     match event {
-      Event::NewEvents(start_cause) => {
-        SurfaceEvent::NewEvents(SurfaceStartCause::from(start_cause))
+      winit::event::Event::NewEvents(start_cause) => {
+        Event::NewEvents(StartCause::from(start_cause))
       }
-      Event::WindowEvent { window_id, event } => SurfaceEvent::WindowEvent {
-        window_id: hash(window_id),
-        event: SurfaceWindowEvent::from(event),
-      },
-      Event::DeviceEvent { device_id, event } => SurfaceEvent::DeviceEvent {
-        device_id: hash(device_id),
-        event: SurfaceDeviceEvent::from(event),
-      },
-      Event::UserEvent(_) => SurfaceEvent::UserEvent,
-      Event::Suspended => SurfaceEvent::Suspended,
-      Event::Resumed => SurfaceEvent::Resumed,
-      Event::MainEventsCleared => SurfaceEvent::MainEventsCleared,
-      Event::RedrawRequested(_) => SurfaceEvent::RedrawRequested,
-      Event::RedrawEventsCleared => SurfaceEvent::RedrawEventsCleared,
-      Event::LoopDestroyed => SurfaceEvent::LoopDestroyed,
+      winit::event::Event::WindowEvent { window_id, event } => {
+        Event::WindowEvent {
+          window_id: hash(window_id),
+          event: WindowEvent::from(event),
+        }
+      }
+      winit::event::Event::DeviceEvent { device_id, event } => {
+        Event::DeviceEvent {
+          device_id: hash(device_id),
+          event: DeviceEvent::from(event),
+        }
+      }
+      winit::event::Event::UserEvent(_) => Event::UserEvent,
+      winit::event::Event::Suspended => Event::Suspended,
+      winit::event::Event::Resumed => Event::Resumed,
+      winit::event::Event::MainEventsCleared => Event::MainEventsCleared,
+      winit::event::Event::RedrawRequested(_) => Event::RedrawRequested,
+      winit::event::Event::RedrawEventsCleared => Event::RedrawEventsCleared,
+      winit::event::Event::LoopDestroyed => Event::LoopDestroyed,
     }
   }
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub enum SurfaceStartCause {
+pub enum StartCause {
   ResumeTimeReached {
     #[serde(with = "serde_millis")]
     start: Instant,
@@ -84,31 +78,31 @@ pub enum SurfaceStartCause {
   Init,
 }
 
-impl From<StartCause> for SurfaceStartCause {
-  fn from(start_cause: StartCause) -> Self {
+impl From<winit::event::StartCause> for StartCause {
+  fn from(start_cause: winit::event::StartCause) -> Self {
     match start_cause {
-      StartCause::ResumeTimeReached {
+      winit::event::StartCause::ResumeTimeReached {
         start,
         requested_resume,
-      } => SurfaceStartCause::ResumeTimeReached {
+      } => StartCause::ResumeTimeReached {
         start: start,
         requested_resume,
       },
-      StartCause::WaitCancelled {
+      winit::event::StartCause::WaitCancelled {
         start,
         requested_resume,
-      } => SurfaceStartCause::WaitCancelled {
+      } => StartCause::WaitCancelled {
         start: start,
         requested_resume,
       },
-      StartCause::Poll => SurfaceStartCause::Poll,
-      StartCause::Init => SurfaceStartCause::Init,
+      winit::event::StartCause::Poll => StartCause::Poll,
+      winit::event::StartCause::Init => StartCause::Init,
     }
   }
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub enum SurfaceWindowEvent {
+pub enum WindowEvent {
   Resized(PhysicalSize<u32>),
   Moved(PhysicalPosition<i32>),
   CloseRequested,
@@ -231,107 +225,113 @@ impl From<winit::window::Theme> for Theme {
   }
 }
 
-impl From<WindowEvent<'_>> for SurfaceWindowEvent {
-  fn from(window_event: WindowEvent) -> Self {
+impl From<winit::event::WindowEvent<'_>> for WindowEvent {
+  fn from(window_event: winit::event::WindowEvent) -> Self {
     match window_event {
-      WindowEvent::Resized(size) => SurfaceWindowEvent::Resized(size),
-      WindowEvent::Moved(pos) => SurfaceWindowEvent::Moved(pos),
-      WindowEvent::CloseRequested => SurfaceWindowEvent::CloseRequested,
-      WindowEvent::Destroyed => SurfaceWindowEvent::Destroyed,
-      WindowEvent::DroppedFile(file) => SurfaceWindowEvent::DroppedFile(file),
-      WindowEvent::HoveredFile(file) => SurfaceWindowEvent::HoveredFile(file),
-      WindowEvent::HoveredFileCancelled => {
-        SurfaceWindowEvent::HoveredFileCancelled
+      winit::event::WindowEvent::Resized(size) => WindowEvent::Resized(size),
+      winit::event::WindowEvent::Moved(pos) => WindowEvent::Moved(pos),
+      winit::event::WindowEvent::CloseRequested => WindowEvent::CloseRequested,
+      winit::event::WindowEvent::Destroyed => WindowEvent::Destroyed,
+      winit::event::WindowEvent::DroppedFile(file) => {
+        WindowEvent::DroppedFile(file)
       }
-      WindowEvent::ReceivedCharacter(ch) => {
-        SurfaceWindowEvent::ReceivedCharacter(ch)
+      winit::event::WindowEvent::HoveredFile(file) => {
+        WindowEvent::HoveredFile(file)
       }
-      WindowEvent::Focused(foc) => SurfaceWindowEvent::Focused(foc),
-      WindowEvent::KeyboardInput {
+      winit::event::WindowEvent::HoveredFileCancelled => {
+        WindowEvent::HoveredFileCancelled
+      }
+      winit::event::WindowEvent::ReceivedCharacter(ch) => {
+        WindowEvent::ReceivedCharacter(ch)
+      }
+      winit::event::WindowEvent::Focused(foc) => WindowEvent::Focused(foc),
+      winit::event::WindowEvent::KeyboardInput {
         device_id,
         input,
         is_synthetic,
-      } => SurfaceWindowEvent::KeyboardInput {
+      } => WindowEvent::KeyboardInput {
         device_id: hash(device_id),
         input,
         is_synthetic,
       },
-      WindowEvent::ModifiersChanged(modifiers) => {
-        SurfaceWindowEvent::ModifiersChanged(modifiers)
+      winit::event::WindowEvent::ModifiersChanged(modifiers) => {
+        WindowEvent::ModifiersChanged(modifiers)
       }
-      WindowEvent::CursorMoved {
+      winit::event::WindowEvent::CursorMoved {
         device_id,
         position,
         modifiers: _,
-      } => SurfaceWindowEvent::CursorMoved {
+      } => WindowEvent::CursorMoved {
         device_id: hash(device_id),
         position,
       },
-      WindowEvent::CursorEntered { device_id } => {
-        SurfaceWindowEvent::CursorEntered {
+      winit::event::WindowEvent::CursorEntered { device_id } => {
+        WindowEvent::CursorEntered {
           device_id: hash(device_id),
         }
       }
-      WindowEvent::CursorLeft { device_id } => SurfaceWindowEvent::CursorLeft {
-        device_id: hash(device_id),
-      },
-      WindowEvent::MouseWheel {
-        device_id,
-        delta,
-        phase,
-        modifiers: _,
-      } => SurfaceWindowEvent::MouseWheel {
-        device_id: hash(device_id),
-        delta,
-        phase,
-      },
-      WindowEvent::MouseInput {
-        device_id,
-        state,
-        button,
-        modifiers: _,
-      } => SurfaceWindowEvent::MouseInput {
-        device_id: hash(device_id),
-        state,
-        button,
-      },
-      WindowEvent::TouchpadPressure {
-        device_id,
-        pressure,
-        stage,
-      } => SurfaceWindowEvent::TouchpadPressure {
-        device_id: hash(device_id),
-        pressure,
-        stage,
-      },
-      WindowEvent::AxisMotion {
-        device_id,
-        axis,
-        value,
-      } => SurfaceWindowEvent::AxisMotion {
-        device_id: hash(device_id),
-        axis,
-        value,
-      },
-      WindowEvent::Touch(touch) => {
-        SurfaceWindowEvent::Touch(Touch::from(touch))
+      winit::event::WindowEvent::CursorLeft { device_id } => {
+        WindowEvent::CursorLeft {
+          device_id: hash(device_id),
+        }
       }
-      WindowEvent::ScaleFactorChanged {
+      winit::event::WindowEvent::MouseWheel {
+        device_id,
+        delta,
+        phase,
+        modifiers: _,
+      } => WindowEvent::MouseWheel {
+        device_id: hash(device_id),
+        delta,
+        phase,
+      },
+      winit::event::WindowEvent::MouseInput {
+        device_id,
+        state,
+        button,
+        modifiers: _,
+      } => WindowEvent::MouseInput {
+        device_id: hash(device_id),
+        state,
+        button,
+      },
+      winit::event::WindowEvent::TouchpadPressure {
+        device_id,
+        pressure,
+        stage,
+      } => WindowEvent::TouchpadPressure {
+        device_id: hash(device_id),
+        pressure,
+        stage,
+      },
+      winit::event::WindowEvent::AxisMotion {
+        device_id,
+        axis,
+        value,
+      } => WindowEvent::AxisMotion {
+        device_id: hash(device_id),
+        axis,
+        value,
+      },
+      winit::event::WindowEvent::Touch(touch) => {
+        WindowEvent::Touch(Touch::from(touch))
+      }
+      winit::event::WindowEvent::ScaleFactorChanged {
         scale_factor,
         new_inner_size,
-      } => SurfaceWindowEvent::ScaleFactorChanged {
+      } => WindowEvent::ScaleFactorChanged {
         scale_factor,
         new_inner_size: *new_inner_size,
       },
-      WindowEvent::ThemeChanged(theme) => {
-        SurfaceWindowEvent::ThemeChanged(Theme::from(theme))
+      winit::event::WindowEvent::ThemeChanged(theme) => {
+        WindowEvent::ThemeChanged(Theme::from(theme))
       }
     }
   }
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub enum SurfaceDeviceEvent {
+pub enum DeviceEvent {
   Added,
   Removed,
   MouseMotion {
@@ -354,27 +354,29 @@ pub enum SurfaceDeviceEvent {
   },
 }
 
-impl From<DeviceEvent> for SurfaceDeviceEvent {
-  fn from(device_event: DeviceEvent) -> Self {
+impl From<winit::event::DeviceEvent> for DeviceEvent {
+  fn from(device_event: winit::event::DeviceEvent) -> Self {
     match device_event {
-      DeviceEvent::Added => SurfaceDeviceEvent::Added,
-      DeviceEvent::Removed => SurfaceDeviceEvent::Removed,
-      DeviceEvent::MouseMotion { delta } => {
-        SurfaceDeviceEvent::MouseMotion { delta }
+      winit::event::DeviceEvent::Added => DeviceEvent::Added,
+      winit::event::DeviceEvent::Removed => DeviceEvent::Removed,
+      winit::event::DeviceEvent::MouseMotion { delta } => {
+        DeviceEvent::MouseMotion { delta }
       }
-      DeviceEvent::MouseWheel { delta } => {
-        SurfaceDeviceEvent::MouseWheel { delta }
+      winit::event::DeviceEvent::MouseWheel { delta } => {
+        DeviceEvent::MouseWheel { delta }
       }
-      DeviceEvent::Motion { axis, value } => {
-        SurfaceDeviceEvent::Motion { axis, value }
+      winit::event::DeviceEvent::Motion { axis, value } => {
+        DeviceEvent::Motion { axis, value }
       }
-      DeviceEvent::Button { button, state } => {
-        SurfaceDeviceEvent::Button { button, state }
+      winit::event::DeviceEvent::Button { button, state } => {
+        DeviceEvent::Button { button, state }
       }
-      DeviceEvent::Key(keyboard_input) => {
-        SurfaceDeviceEvent::Key(keyboard_input)
+      winit::event::DeviceEvent::Key(keyboard_input) => {
+        DeviceEvent::Key(keyboard_input)
       }
-      DeviceEvent::Text { codepoint } => SurfaceDeviceEvent::Text { codepoint },
+      winit::event::DeviceEvent::Text { codepoint } => {
+        DeviceEvent::Text { codepoint }
+      }
     }
   }
 }

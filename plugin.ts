@@ -21,7 +21,7 @@ interface Result<T> {
   ok?: T;
 }
 
-function sync<R extends Result<any>>(op: string, data: unknown): R {
+function sync<R extends Result<any>>(op: string, data: unknown = {}): R {
   if (rid === undefined) {
     throw "The plugin must be initialized before use";
   }
@@ -64,10 +64,10 @@ export function unload() {
   rid = undefined;
 }
 
-export function SurfaceNew(): bigint {
-  return unwrap(sync("surface_new", {}));
+export function WindowNew(): bigint {
+  return unwrap(sync("window_new"));
 }
 
-export function SurfaceStep(id: bigint) {
-  return unwrap(sync("surface_step", id));
+export function EventLoopStep() {
+  return unwrap(sync("event_loop_step"));
 }

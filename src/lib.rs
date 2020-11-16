@@ -13,51 +13,60 @@ use deno_core::serde_json::Value;
 
 use deno_json_op::json_op;
 
+use winit::event_loop::ControlFlow;
+use winit::event_loop::EventLoop;
+use winit::platform::desktop::EventLoopExtDesktop;
+
 mod event;
 mod helpers;
-mod surface;
+mod window;
 
-use surface::Surface;
+use event::Event;
+use window::Window;
 
 thread_local! {
-  static SURFACE_MAP: RefCell<HashMap<u64, Surface>> = RefCell::new(HashMap::new());
+  static EVENT_LOOP: RefCell<EventLoop<()>> = RefCell::new(EventLoop::new());
+  static WINDOW_MAP: RefCell<HashMap<u64, Window>> = RefCell::new(HashMap::new());
 }
 
 #[no_mangle]
 pub fn deno_plugin_init(interface: &mut dyn Interface) {
-  interface.register_op("surface_new", surface_new);
-  interface.register_op("surface_step", surface_step);
+  interface.register_op("window_new", window_new);
+  interface.register_op("event_loop_step", event_loop_step);
 }
 
 #[json_op]
-fn surface_new(
+fn window_new(
   _json: Value,
   _zero_copy: &mut [ZeroCopyBuf],
 ) -> Result<Value, AnyError> {
-  SURFACE_MAP.with(|cell| {
-    let surface = Surface::new()?;
-    let id = surface.id();
-    cell.borrow_mut().insert(id, surface);
-    Ok(json!(id))
+  WINDOW_MAP.with(|cell| {
+    let mut window_map = cell.borrow_mut();
+    EVENT_LOOP.with(|cell| {
+      let event_loop = cell.borrow();
+      let window = Window::new(&event_loop)?;
+      let id = window.id();
+      window_map.insert(id, window);
+      Ok(json!(id))
+    })
   })
 }
 
 #[json_op]
-fn surface_step(
-  json: Value,
+fn event_loop_step(
+  _json: Value,
   _zero_copy: &mut [ZeroCopyBuf],
 ) -> Result<Value, AnyError> {
-  if let Some(id) = json.as_u64() {
-    SURFACE_MAP.with(|cell| {
-      let mut surface_map = cell.borrow_mut();
+  let mut events = Vec::new();
 
-      if let Some(surface) = surface_map.get_mut(&id) {
-        Ok(json!(surface.run()))
-      } else {
-        Err(anyhow!("could not find surface {}", id))
-      }
-    })
-  } else {
-    Err(anyhow!("id is none"))
-  }
+  EVENT_LOOP.with(|cell| {
+    let event_loop = &mut *cell.borrow_mut();
+    event_loop.run_return(|event, _, control_flow| {
+      *control_flow = ControlFlow::Exit;
+
+      events.push(Event::from(event));
+    });
+  });
+
+  Ok(json!(events))
 }
