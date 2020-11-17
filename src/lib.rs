@@ -12,7 +12,6 @@ use deno_core::plugin_api::ZeroCopyBuf;
 
 use deno_core::serde::Deserialize;
 
-use deno_core::serde_json;
 use deno_core::serde_json::json;
 use deno_core::serde_json::Value;
 
@@ -471,7 +470,7 @@ fn window_set_window_icon(
   let rgba: Vec<u8> = json["rgba"]
     .as_array()
     .unwrap()
-    .into_iter()
+    .iter()
     .map(|v| v.as_u64().unwrap() as u8)
     .collect();
   let width = json["width"].as_u64().unwrap();

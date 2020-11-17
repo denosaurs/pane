@@ -119,14 +119,14 @@ impl From<winit::event::StartCause> for StartCause {
         start,
         requested_resume,
       } => StartCause::ResumeTimeReached {
-        start: start,
+        start,
         requested_resume,
       },
       winit::event::StartCause::WaitCancelled {
         start,
         requested_resume,
       } => StartCause::WaitCancelled {
-        start: start,
+        start,
         requested_resume,
       },
       winit::event::StartCause::Poll => StartCause::Poll,
@@ -307,6 +307,8 @@ impl From<winit::event::WindowEvent<'_>> for WindowEvent {
       winit::event::WindowEvent::ModifiersChanged(modifiers) => {
         WindowEvent::ModifiersChanged(modifiers)
       }
+
+      #[allow(deprecated)]
       winit::event::WindowEvent::CursorMoved {
         device_id,
         position,
@@ -325,6 +327,7 @@ impl From<winit::event::WindowEvent<'_>> for WindowEvent {
           device_id: hash(device_id),
         }
       }
+      #[allow(deprecated)]
       winit::event::WindowEvent::MouseWheel {
         device_id,
         delta,
@@ -335,6 +338,7 @@ impl From<winit::event::WindowEvent<'_>> for WindowEvent {
         delta,
         phase,
       },
+      #[allow(deprecated)]
       winit::event::WindowEvent::MouseInput {
         device_id,
         state,
