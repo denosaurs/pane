@@ -3,7 +3,8 @@ import { deserialize, serialize } from "./helpers.ts";
 import { Result } from "./types.ts";
 
 const VERSION = "0.0.1";
-const PLUGIN_URL = Deno.env.get("PLUGIN_URL") ?? `https://github.com/denosaurs/pane/releases/download/${VERSION}/`;
+const PLUGIN_URL = Deno.env.get("PLUGIN_URL") ??
+  `https://github.com/denosaurs/pane/releases/download/${VERSION}/`;
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -50,7 +51,7 @@ export async function load() {
   unload();
   rid = await Plug.prepare({
     name: "pane",
-    url: PLUGIN_URL
+    url: PLUGIN_URL,
   });
 }
 
