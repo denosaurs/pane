@@ -1,0 +1,77 @@
+name: release
+
+on:
+  push:
+    tags: "*"
+
+jobs:
+  build:
+    name: ${{ matrix.kind }} ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        os: [macOS-latest, windows-latest, ubuntu-latest]
+
+    env:
+      GH_ACTIONS: true
+      RUST_BACKTRACE: full
+
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v2
+
+      - name: install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: log versions
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles("**/Cargo.lock") }}
+
+      - name: cache cargo index
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles("**/Cargo.lock") }}
+
+      - name: cache cargo build
+        uses: actions/cache@v1
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles("**/Cargo.lock") }}
+
+      - name: remove old cache
+        if: matrix.os == "windows-latest"
+        run: |
+          rm target/release/gn_root -Recurse -ErrorAction Ignore
+          rm target/debug/gn_root -Recurse -ErrorAction Ignore
+
+      - name: run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: create release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          name: v${{ github.ref }}
+          draft: true
+          files: |
+            target/release/libpane.dylib
+            target/release/libpane.so
+            target/release/pane.dll
