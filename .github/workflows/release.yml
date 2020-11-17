@@ -52,7 +52,7 @@ jobs:
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
       - name: remove old cache
-        if: matrix.os == "windows-latest"
+        if: matrix.os == windows-latest
         run: |
           rm target/release/gn_root -Recurse -ErrorAction Ignore
           rm target/debug/gn_root -Recurse -ErrorAction Ignore
