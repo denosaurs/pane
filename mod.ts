@@ -5,7 +5,6 @@ import { load, unload } from "./plugin.ts";
 
 await load();
 
-// deno-fmt-ignore
-// deno-lint-ignore
+// deno-lint-ignore ban-ts-comment
 // @ts-ignore
 if (typeof window !== "undefined") window.addEventListener("unload", unload);

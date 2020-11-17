@@ -2,6 +2,9 @@ import { Plug } from "./deps.ts";
 import { deserialize, serialize } from "./helpers.ts";
 import { Result } from "./types.ts";
 
+const VERSION = "0.0.1";
+const PLUGIN_URL = Deno.env.get("PLUGIN_URL") ?? `https://github.com/denosaurs/pane/releases/download/${VERSION}/`;
+
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -17,7 +20,7 @@ function encode(data: unknown): Uint8Array {
   return encoder.encode(text);
 }
 
-export function sync<R extends Result<any>>(op: string, data: unknown = {}): R {
+export function sync<T>(op: string, data: unknown = {}): T {
   if (rid === undefined) {
     throw "The plugin must be initialized before use";
   }
@@ -25,10 +28,10 @@ export function sync<R extends Result<any>>(op: string, data: unknown = {}): R {
   const opId = Plug.getOpId(op);
   const response = Plug.core.dispatch(opId, encode(data))!;
 
-  return decode(response) as R;
+  return decode(response) as T;
 }
 
-export function unwrap<T, R extends Result<T>>(result: R): T {
+export function unwrap<T>(result: Result<T>): T {
   if ("err" in result) {
     throw (result as { err: string }).err;
   }
@@ -47,8 +50,7 @@ export async function load() {
   unload();
   rid = await Plug.prepare({
     name: "pane",
-    url: "file://./target/debug/",
-    policy: Plug.CachePolicy.NONE,
+    url: PLUGIN_URL
   });
 }
 
