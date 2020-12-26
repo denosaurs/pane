@@ -16,9 +16,12 @@ setInterval(() => {
         switch (event.value.event.type) {
           case "closeRequested":
             Deno.exit();
+            break;
           case "resized":
-            const { width, height } = event.value.event.value;
-            window.resizeFrame(width, height);
+            window.resizeFrame(
+              event.value.event.value.width,
+              event.value.event.value.height,
+            );
             break;
         }
         break;

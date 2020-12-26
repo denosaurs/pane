@@ -31,7 +31,9 @@ export function syncRaw(
   }
 
   const opId = Plug.getOpId(op);
-  const response = buf ? Plug.core.dispatch(opId, encode(data), buf)! : Plug.core.dispatch(opId, encode(data))!;
+  const response = buf
+    ? Plug.core.dispatch(opId, encode(data), buf)!
+    : Plug.core.dispatch(opId, encode(data))!;
 
   return response;
 }

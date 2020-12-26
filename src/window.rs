@@ -22,7 +22,11 @@ pub struct Window {
 }
 
 impl Window {
-  pub fn new(event_loop: &EventLoop<()>, width: u32, height: u32) -> Result<Self, AnyError> {
+  pub fn new(
+    event_loop: &EventLoop<()>,
+    width: u32,
+    height: u32,
+  ) -> Result<Self, AnyError> {
     let window = winit::window::Window::new(event_loop)?;
     let pixels = {
       let window_size = window.inner_size();
@@ -154,7 +158,7 @@ impl Window {
   pub fn render_frame(&mut self) -> Result<(), AnyError> {
     match self.pixels.render() {
       Ok(()) => Ok(()),
-      Err(err) => Err(anyhow!(err))
+      Err(err) => Err(anyhow!(err)),
     }
   }
 
