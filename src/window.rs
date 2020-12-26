@@ -1,6 +1,9 @@
 use deno_core::error::anyhow;
 use deno_core::error::AnyError;
 
+use pixels::Pixels;
+use pixels::SurfaceTexture;
+
 use winit::event_loop::EventLoop;
 
 use winit::dpi::PhysicalPosition;
@@ -15,14 +18,19 @@ use crate::helpers::hash;
 
 pub struct Window {
   window: winit::window::Window,
+  pixels: Pixels<winit::window::Window>,
 }
 
 impl Window {
-  pub fn new(event_loop: &EventLoop<()>) -> Result<Window, AnyError> {
-    match winit::window::Window::new(event_loop) {
-      Ok(window) => Ok(Window { window }),
-      Err(err) => Err(anyhow!(err)),
-    }
+  pub fn new(event_loop: &EventLoop<()>, width: u32, height: u32) -> Result<Self, AnyError> {
+    let window = winit::window::Window::new(event_loop)?;
+    let pixels = {
+      let window_size = window.inner_size();
+      let surface_texture =
+        SurfaceTexture::new(window_size.width, window_size.height, &window);
+      Pixels::new(width, height, surface_texture)?
+    };
+    Ok(Self { window, pixels })
   }
 
   pub fn id(&self) -> u64 {
@@ -141,5 +149,24 @@ impl Window {
 
   pub fn set_cursor_visible(&self, visible: bool) {
     self.window.set_cursor_visible(visible)
+  }
+
+  pub fn render_frame(&mut self) -> Result<(), AnyError> {
+    match self.pixels.render() {
+      Ok(()) => Ok(()),
+      Err(err) => Err(anyhow!(err))
+    }
+  }
+
+  pub fn draw_frame(&mut self, buf: &mut [u8]) {
+    self.pixels.get_frame().copy_from_slice(buf);
+  }
+
+  pub fn resize_frame(&mut self, width: u32, height: u32) {
+    self.pixels.resize(width, height)
+  }
+
+  pub fn view_frame(&mut self) -> &[u8] {
+    self.pixels.get_frame()
   }
 }

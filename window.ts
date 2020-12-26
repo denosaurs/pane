@@ -1,4 +1,4 @@
-import { sync, unwrap } from "./plugin.ts";
+import { sync, syncRaw, unwrap } from "./plugin.ts";
 import {
   CursorIcon,
   Id,
@@ -9,77 +9,77 @@ import {
 } from "./types.ts";
 
 export class Window {
-  public readonly id: Id;
+  readonly id: Id;
 
-  constructor() {
-    this.id = unwrap(sync("window_new"));
+  constructor(width: number = 320, height: number = 240) {
+    this.id = unwrap(sync("window_new", { width, height }));
   }
 
-  public scaleFactor(): number {
+  scaleFactor(): number {
     return unwrap(sync("window_scale_factor", { id: this.id }));
   }
 
-  public requestRedraw(): void {
+  requestRedraw(): void {
     unwrap(sync("window_request_redraw", { id: this.id }));
   }
 
-  public innerPosition(): PhysicalPosition {
+  innerPosition(): PhysicalPosition {
     return unwrap(sync("window_inner_position", { id: this.id }));
   }
 
-  public outerPosition(): PhysicalPosition {
+  outerPosition(): PhysicalPosition {
     return unwrap(sync("window_outer_position", { id: this.id }));
   }
 
-  public setOuterPosition(position: Position): void {
+  setOuterPosition(position: Position): void {
     unwrap(sync("window_set_outer_position", { id: this.id, position }));
   }
 
-  public innerSize(): PhysicalSize {
+  innerSize(): PhysicalSize {
     return unwrap(sync("window_inner_size", { id: this.id }));
   }
 
-  public setInnerSize(size: Size): void {
+  setInnerSize(size: Size): void {
     unwrap(sync("window_set_inner_size", { id: this.id, size }));
   }
 
-  public outerSize(): PhysicalSize {
+  outerSize(): PhysicalSize {
     return unwrap(sync("window_outer_size", { id: this.id }));
   }
 
-  public setMinInnerSize(minSize?: Size): void {
+  setMinInnerSize(minSize?: Size): void {
     unwrap(
       sync("window_set_min_inner_size", { id: this.id, minSize }),
     );
   }
 
-  public setMaxInnerSize(maxSize?: Size): void {
+  setMaxInnerSize(maxSize?: Size): void {
     unwrap(
       sync("window_set_max_inner_size", { id: this.id, maxSize }),
     );
   }
 
-  public setTitle(title: string): void {
+  setTitle(title: string): void {
     unwrap(sync("window_set_title", { id: this.id, title }));
   }
 
-  public setResizable(resizable: boolean): void {
+  setResizable(resizable: boolean): void {
     unwrap(sync("window_set_resizable", { id: this.id, resizable }));
   }
 
-  public setMinimized(minimized: boolean): void {
+  setMinimized(minimized: boolean): void {
     unwrap(sync("window_set_minimized", { id: this.id, minimized }));
   }
 
-  public setMaximized(maximized: boolean): void {
+  setMaximized(maximized: boolean): void {
     unwrap(sync("window_set_maximized", { id: this.id, maximized }));
   }
 
-  public setDecorations(decorations: boolean): void {
+  setDecorations(decorations: boolean): void {
     unwrap(sync("window_set_decorations", { id: this.id, decorations }));
   }
 
-  public setAlwaysOnTop(alwaysOnTop: boolean): void {
+  setAlwaysOnTop(alwaysOnTop: boolean): void {
     unwrap(
       sync(
         "window_set_always_on_top",
@@ -88,7 +88,7 @@ export class Window {
     );
   }
 
-  public setWindowIcon(
+  setWindowIcon(
     rgba: Uint8Array,
     width: number,
     height: number,
@@ -101,23 +101,39 @@ export class Window {
     );
   }
 
-  public setImePosition(position: Position): void {
+  setImePosition(position: Position): void {
     unwrap(sync("window_set_ime_position", { id: this.id, position }));
   }
 
-  public setCursorIcon(cursor: CursorIcon): void {
+  setCursorIcon(cursor: CursorIcon): void {
     unwrap(sync("window_set_cursor_icon", { id: this.id, cursor }));
   }
 
-  public setCursorPosition(position: Position): void {
+  setCursorPosition(position: Position): void {
     unwrap(sync("window_set_cursor_position", { id: this.id, position }));
   }
 
-  public setCursorGrab(grab: boolean): void {
+  setCursorGrab(grab: boolean): void {
     unwrap(sync("window_set_cursor_grab", { id: this.id, grab }));
   }
 
-  public setCursorVisible(visible: boolean): void {
+  setCursorVisible(visible: boolean): void {
     unwrap(sync("window_set_cursor_visible", { id: this.id, visible }));
+  }
+
+  renderFrame(): void {
+    unwrap(sync("window_render_frame", { id: this.id }));
+  }
+
+  drawFrame(buf: Uint8Array): void {
+    unwrap(sync("window_draw_frame", { id: this.id }, buf));
+  }
+
+  resizeFrame(width: number, height: number): void {
+    unwrap(sync("window_resize_frame", { id: this.id, width, height }));
+  }
+
+  viewFrame(): Uint8Array {
+    return syncRaw("window_view_frame", { id: this.id });
   }
 }

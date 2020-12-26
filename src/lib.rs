@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
+
 use winit::dpi::LogicalSize;
 use winit::dpi::PhysicalSize;
 
@@ -12,6 +13,7 @@ use deno_core::plugin_api::ZeroCopyBuf;
 
 use deno_core::serde::Deserialize;
 
+use deno_core::serde_json;
 use deno_core::serde_json::json;
 use deno_core::serde_json::Value;
 
@@ -24,7 +26,7 @@ use winit::dpi::Size;
 
 use winit::event_loop::ControlFlow;
 use winit::event_loop::EventLoop;
-use winit::platform::desktop::EventLoopExtDesktop;
+use winit::platform::run_return::EventLoopExtRunReturn;
 use winit::window::CursorIcon;
 
 mod event;
@@ -119,20 +121,27 @@ pub fn deno_plugin_init(interface: &mut dyn Interface) {
     .register_op("window_set_cursor_position", window_set_cursor_position);
   interface.register_op("window_set_cursor_grab", window_set_cursor_grab);
   interface.register_op("window_set_cursor_visible", window_set_cursor_visible);
+  interface.register_op("window_render_frame", window_render_frame);
+  interface.register_op("window_draw_frame", window_draw_frame);
+  interface.register_op("window_resize_frame", window_resize_frame);
+  interface.register_op("window_view_frame", window_view_frame);
 
   interface.register_op("event_loop_step", event_loop_step);
 }
 
 #[json_op]
 fn window_new(
-  _json: Value,
+  json: Value,
   _zero_copy: &mut [ZeroCopyBuf],
 ) -> Result<Value, AnyError> {
+  let width = json["width"].as_u64().unwrap() as u32;
+  let height = json["height"].as_u64().unwrap() as u32;
+
   WINDOW_MAP.with(|cell| {
     let mut window_map = cell.borrow_mut();
     EVENT_LOOP.with(|cell| {
       let event_loop = cell.borrow();
-      let window = Window::new(&event_loop)?;
+      let window = Window::new(&event_loop, width, height)?;
       let id = window.id();
       window_map.insert(id, window);
       Ok(json!(id))
@@ -587,6 +596,84 @@ fn window_set_cursor_visible(
       Ok(json!(()))
     } else {
       Err(anyhow!("Could not find window with id: {}", id))
+    }
+  })
+}
+
+#[json_op]
+fn window_render_frame(
+  json: Value,
+  _zero_copy: &mut [ZeroCopyBuf],
+) -> Result<Value, AnyError> {
+  let id = json["id"].as_u64().unwrap();
+
+  WINDOW_MAP.with(|cell| {
+    let mut window_map = cell.borrow_mut();
+
+    if let Some(window) = window_map.get_mut(&id) {
+      window.render_frame()?;
+      Ok(json!(()))
+    } else {
+      Err(anyhow!("Could not find window with id: {}", id))
+    }
+  })
+}
+
+#[json_op]
+fn window_draw_frame(
+  json: Value,
+  zero_copy: &mut [ZeroCopyBuf],
+) -> Result<Value, AnyError> {
+  let id = json["id"].as_u64().unwrap();
+
+  WINDOW_MAP.with(|cell| {
+    let mut window_map = cell.borrow_mut();
+
+    if let Some(window) = window_map.get_mut(&id) {
+      window.draw_frame(&mut zero_copy[0]);
+      Ok(json!(()))
+    } else {
+      Err(anyhow!("Could not find window with id: {}", id))
+    }
+  })
+}
+
+#[json_op]
+fn window_resize_frame(
+  json: Value,
+  _zero_copy: &mut [ZeroCopyBuf],
+) -> Result<Value, AnyError> {
+  let id = json["id"].as_u64().unwrap();
+  let width = json["width"].as_u64().unwrap() as u32;
+  let height = json["height"].as_u64().unwrap() as u32;
+
+  WINDOW_MAP.with(|cell| {
+    let mut window_map = cell.borrow_mut();
+
+    if let Some(window) = window_map.get_mut(&id) {
+      window.resize_frame(width, height);
+      Ok(json!(()))
+    } else {
+      Err(anyhow!("Could not find window with id: {}", id))
+    }
+  })
+}
+
+fn window_view_frame(
+  _interface: &mut dyn Interface,
+  zero_copy: &mut [ZeroCopyBuf],
+) -> Op {
+  let json: Value = serde_json::from_slice(&zero_copy[0]).unwrap();
+  let id = json["id"].as_u64().unwrap();
+
+  WINDOW_MAP.with(|cell| {
+    let mut window_map = cell.borrow_mut();
+
+    if let Some(window) = window_map.get_mut(&id) {
+      let frame = Box::from(window.view_frame());
+      Op::Sync(frame)
+    } else {
+      panic!("Could not get frame buffer");
     }
   })
 }
