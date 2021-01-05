@@ -125,7 +125,10 @@ pub fn deno_plugin_init(interface: &mut dyn Interface) {
   interface.register_op("window_set_always_on_top", window_set_always_on_top);
   interface.register_op("window_set_window_icon", window_set_window_icon);
   interface.register_op("window_set_ime_position", window_set_ime_position);
-  interface.register_op("window_request_user_attention", window_request_user_attention);
+  interface.register_op(
+    "window_request_user_attention",
+    window_request_user_attention,
+  );
   interface.register_op("window_set_cursor_icon", window_set_cursor_icon);
   interface
     .register_op("window_set_cursor_position", window_set_cursor_position);
@@ -554,15 +557,15 @@ fn window_request_user_attention(
   _zero_copy: &mut [ZeroCopyBuf],
 ) -> Result<Value, AnyError> {
   let id = json["id"].as_u64().unwrap();
-  let request_type: Option<UserAttentionType> =
-    if json["requestType"].is_null() {
-      None
-    } else {
-      Some(
-        UserAttentionTypeDef::deserialize(json["requestType"].to_owned())
-          .unwrap(),
-      )
-    };
+  let request_type: Option<UserAttentionType> = if json["requestType"].is_null()
+  {
+    None
+  } else {
+    Some(
+      UserAttentionTypeDef::deserialize(json["requestType"].to_owned())
+        .unwrap(),
+    )
+  };
 
   WINDOW_MAP.with(|cell| {
     let window_map = cell.borrow();

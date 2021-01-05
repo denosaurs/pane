@@ -135,7 +135,10 @@ impl Window {
     self.window.set_ime_position(position)
   }
 
-  pub fn request_user_attention(&self, request_type: Option<UserAttentionType>) {
+  pub fn request_user_attention(
+    &self,
+    request_type: Option<UserAttentionType>,
+  ) {
     self.window.request_user_attention(request_type)
   }
 

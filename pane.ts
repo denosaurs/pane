@@ -7,7 +7,7 @@ import {
   PhysicalSize,
   Position,
   Size,
-  UserAttentionType
+  UserAttentionType,
 } from "./types.ts";
 
 /**
