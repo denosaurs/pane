@@ -20,6 +20,31 @@ use winit::event::VirtualKeyCode;
 use crate::helpers::hash;
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase", remote = "ElementState")]
+pub enum ElementStateDef {
+  Pressed,
+  Released,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase", remote = "MouseButton")]
+pub enum MouseButtonDef {
+  Left,
+  Right,
+  Middle,
+  Other(u16),
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase", remote = "TouchPhase")]
+pub enum TouchPhaseDef {
+  Started,
+  Moved,
+  Ended,
+  Cancelled,
+}
+
+#[derive(Serialize)]
 #[serde(
   rename_all = "camelCase",
   tag = "type",
@@ -35,6 +60,7 @@ pub enum MouseScrollDeltaDef {
 #[serde(rename_all = "camelCase", remote = "KeyboardInput")]
 pub struct KeyboardInputDef {
   scancode: ScanCode,
+  #[serde(with = "ElementStateDef")]
   state: ElementState,
   virtual_keycode: Option<VirtualKeyCode>,
 }
@@ -173,12 +199,15 @@ pub enum WindowEvent {
     device_id: u64,
     #[serde(with = "MouseScrollDeltaDef")]
     delta: MouseScrollDelta,
+    #[serde(with = "TouchPhaseDef")]
     phase: TouchPhase,
   },
   #[serde(rename_all = "camelCase")]
   MouseInput {
     device_id: u64,
+    #[serde(with = "ElementStateDef")]
     state: ElementState,
+    #[serde(with = "MouseButtonDef")]
     button: MouseButton,
   },
   #[serde(rename_all = "camelCase")]
@@ -206,6 +235,7 @@ pub enum WindowEvent {
 #[serde(rename_all = "camelCase")]
 pub struct Touch {
   device_id: u64,
+  #[serde(with = "TouchPhaseDef")]
   phase: TouchPhase,
   location: PhysicalPosition<f64>,
   force: Option<Force>,
@@ -402,6 +432,7 @@ pub enum DeviceEvent {
   },
   Button {
     button: ButtonId,
+    #[serde(with = "ElementStateDef")]
     state: ElementState,
   },
   #[serde(with = "KeyboardInputDef")]

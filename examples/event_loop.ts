@@ -1,11 +1,11 @@
 import { serialize } from "../helpers.ts";
-import { EventLoop, Window } from "../mod.ts";
+import { Pane } from "../mod.ts";
 
-const window1 = new Window();
-const window2 = new Window();
+const window1 = new Pane();
+const window2 = new Pane();
 
 setInterval(() => {
-  for (const event of EventLoop.Step()) {
+  for (const event of Pane.Step()) {
     switch (event.type) {
       case "windowEvent":
         console.log(serialize(event, 2));

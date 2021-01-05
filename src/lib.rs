@@ -28,6 +28,7 @@ use winit::event_loop::ControlFlow;
 use winit::event_loop::EventLoop;
 use winit::platform::run_return::EventLoopExtRunReturn;
 use winit::window::CursorIcon;
+use winit::window::UserAttentionType;
 
 mod event;
 mod helpers;
@@ -35,6 +36,13 @@ mod window;
 
 use event::Event;
 use window::Window;
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", remote = "UserAttentionType")]
+pub enum UserAttentionTypeDef {
+  Critical,
+  Informational,
+}
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", remote = "Position")]
@@ -109,6 +117,7 @@ pub fn deno_plugin_init(interface: &mut dyn Interface) {
   interface.register_op("window_set_min_inner_size", window_set_min_inner_size);
   interface.register_op("window_set_max_inner_size", window_set_max_inner_size);
   interface.register_op("window_set_title", window_set_title);
+  interface.register_op("window_set_visible", window_set_visible);
   interface.register_op("window_set_resizable", window_set_resizable);
   interface.register_op("window_set_minimized", window_set_minimized);
   interface.register_op("window_set_maximized", window_set_maximized);
@@ -116,6 +125,7 @@ pub fn deno_plugin_init(interface: &mut dyn Interface) {
   interface.register_op("window_set_always_on_top", window_set_always_on_top);
   interface.register_op("window_set_window_icon", window_set_window_icon);
   interface.register_op("window_set_ime_position", window_set_ime_position);
+  interface.register_op("window_request_user_attention", window_request_user_attention);
   interface.register_op("window_set_cursor_icon", window_set_cursor_icon);
   interface
     .register_op("window_set_cursor_position", window_set_cursor_position);
@@ -371,6 +381,26 @@ fn window_set_title(
 }
 
 #[json_op]
+fn window_set_visible(
+  json: Value,
+  _zero_copy: &mut [ZeroCopyBuf],
+) -> Result<Value, AnyError> {
+  let id = json["id"].as_u64().unwrap();
+  let visible = json["visible"].as_bool().unwrap();
+
+  WINDOW_MAP.with(|cell| {
+    let window_map = cell.borrow();
+
+    if let Some(window) = window_map.get(&id) {
+      window.set_visible(visible);
+      Ok(json!(()))
+    } else {
+      Err(anyhow!("Could not find window with id: {}", id))
+    }
+  })
+}
+
+#[json_op]
 fn window_set_resizable(
   json: Value,
   _zero_copy: &mut [ZeroCopyBuf],
@@ -511,6 +541,34 @@ fn window_set_ime_position(
 
     if let Some(window) = window_map.get(&id) {
       window.set_ime_position(position);
+      Ok(json!(()))
+    } else {
+      Err(anyhow!("Could not find window with id: {}", id))
+    }
+  })
+}
+
+#[json_op]
+fn window_request_user_attention(
+  json: Value,
+  _zero_copy: &mut [ZeroCopyBuf],
+) -> Result<Value, AnyError> {
+  let id = json["id"].as_u64().unwrap();
+  let request_type: Option<UserAttentionType> =
+    if json["requestType"].is_null() {
+      None
+    } else {
+      Some(
+        UserAttentionTypeDef::deserialize(json["requestType"].to_owned())
+          .unwrap(),
+      )
+    };
+
+  WINDOW_MAP.with(|cell| {
+    let window_map = cell.borrow();
+
+    if let Some(window) = window_map.get(&id) {
+      window.request_user_attention(request_type);
       Ok(json!(()))
     } else {
       Err(anyhow!("Could not find window with id: {}", id))

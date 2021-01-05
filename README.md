@@ -23,19 +23,19 @@ the window.
 ### Draw random pixels to window
 
 ```typescript
-import { EventLoop, Window } from "https://deno.land/x/pane/mod.ts";
+import { Pane } from "https://deno.land/x/pane/mod.ts";
 
 const width = 320;
 const height = 240;
 
-const window = new Window(width, height);
+const pane = new Pane(width, height);
 
-window.setInnerSize({ logical: { width: width * 2, height: height * 2 } });
-window.setMinInnerSize({ logical: { width: width * 2, height: height * 2 } });
-window.setMaxInnerSize({ logical: { width: width * 2, height: height * 2 } });
+pane.setInnerSize({ logical: { width: width * 2, height: height * 2 } });
+pane.setMinInnerSize({ logical: { width: width * 2, height: height * 2 } });
+pane.setMaxInnerSize({ logical: { width: width * 2, height: height * 2 } });
 
 setInterval(() => {
-  for (const event of EventLoop.Step()) {
+  for (const event of Pane.Step()) {
     switch (event.type) {
       case "windowEvent":
         switch (event.value.event.type) {
@@ -43,7 +43,7 @@ setInterval(() => {
             Deno.exit();
             break;
           case "resized":
-            window.resizeFrame(
+            pane.resizeFrame(
               event.value.event.value.width,
               event.value.event.value.height,
             );
@@ -52,30 +52,30 @@ setInterval(() => {
         break;
 
       case "redrawRequested":
-        window.drawFrame(
+        pane.drawFrame(
           new Uint8Array(width * height * 4).fill(0).map((_) =>
             Math.floor(Math.random() * 255)
           ),
         );
-        window.renderFrame();
-        window.requestRedraw();
+        pane.renderFrame();
+        pane.requestRedraw();
         break;
     }
   }
-}, 1000 / 60);
+}, 1000 / 30);
 ```
 
 ### Multiple windows
 
 ```typescript
-import { EventLoop, Window } from "https://deno.land/x/pane/mod.ts";
+import { Pane } from "https://deno.land/x/pane/mod.ts";
 import { serialize } from "https://deno.land/x/pane/helpers.ts";
 
-const window1 = new Window();
-const window2 = new Window();
+const window1 = new Pane();
+const window2 = new Pane();
 
 setInterval(() => {
-  for (const event of EventLoop.Step()) {
+  for (const event of Pane.Step()) {
     switch (event.type) {
       case "windowEvent":
         console.log(serialize(event, 2));

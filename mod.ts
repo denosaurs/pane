@@ -1,5 +1,4 @@
-export * from "./window.ts";
-export * from "./event_loop.ts";
+export * from "./pane.ts";
 
 import { load, unload } from "./plugin.ts";
 

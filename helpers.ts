@@ -1,3 +1,4 @@
+/** JSON.parse with BigInt support */
 export function deserialize(text: string): unknown {
   return JSON.parse(
     text.replace(/([^\"]+\"\:\s*)(\d{16,})/g, '$1"$2n"'),
@@ -10,7 +11,7 @@ export function deserialize(text: string): unknown {
     },
   );
 }
-
+/** JSON.stringify with BigInt support */
 export function serialize(value: unknown, space?: number): string {
   return JSON.stringify(value, (_, v) => {
     if (typeof v === "bigint") {

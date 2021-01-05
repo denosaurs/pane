@@ -13,6 +13,7 @@ use winit::dpi::Size;
 
 use winit::window::CursorIcon;
 use winit::window::Icon;
+use winit::window::UserAttentionType;
 
 use crate::helpers::hash;
 
@@ -91,6 +92,10 @@ impl Window {
     self.window.set_title(title)
   }
 
+  pub fn set_visible(&self, visible: bool) {
+    self.window.set_visible(visible)
+  }
+
   pub fn set_resizable(&self, resizable: bool) {
     self.window.set_resizable(resizable)
   }
@@ -128,6 +133,10 @@ impl Window {
 
   pub fn set_ime_position(&self, position: Position) {
     self.window.set_ime_position(position)
+  }
+
+  pub fn request_user_attention(&self, request_type: Option<UserAttentionType>) {
+    self.window.request_user_attention(request_type)
   }
 
   pub fn set_cursor_icon(&self, cursor: CursorIcon) {

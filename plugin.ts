@@ -3,6 +3,9 @@ import { deserialize, serialize } from "./helpers.ts";
 import { Result } from "./types.ts";
 
 const VERSION = "0.0.2";
+const POLICY = Deno.env.get("PLUGIN_URL") === undefined
+  ? Plug.CachePolicy.STORE
+  : Plug.CachePolicy.NONE;
 const PLUGIN_URL = Deno.env.get("PLUGIN_URL") ??
   `https://github.com/denosaurs/pane/releases/download/${VERSION}/`;
 
@@ -62,6 +65,7 @@ export async function load() {
   rid = await Plug.prepare({
     name: "pane",
     url: PLUGIN_URL,
+    policy: POLICY,
   });
 }
 
