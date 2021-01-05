@@ -1,4 +1,5 @@
 export * from "./pane.ts";
+export * from "./types.ts";
 
 import { load, unload } from "./plugin.ts";
 
