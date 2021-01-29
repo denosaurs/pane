@@ -2,7 +2,7 @@ import { Plug } from "./deps.ts";
 import { deserialize, serialize } from "./helpers.ts";
 import { Result } from "./types.ts";
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";
 const POLICY = Deno.env.get("PLUGIN_URL") === undefined
   ? Plug.CachePolicy.STORE
   : Plug.CachePolicy.NONE;
