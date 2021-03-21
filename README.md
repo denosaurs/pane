@@ -7,16 +7,19 @@
 [![License](https://img.shields.io/github/license/denosaurs/pane)](https://github.com/denosaurs/pane/blob/master/LICENSE)
 
 ---
+
 > ⚠️ Work in progress. Expect breaking changes.
+
 ---
 
-Pane provides bindings for rust crate [winit](https://github.com/rust-windowing/winit)
-in preparation for [webgpu](https://github.com/denoland/deno/pull/7977)
-integration in deno. This module will provide a way of getting a [`raw_window_handle`
-resource](https://github.com/denoland/deno/issues/7863#issuecomment-706897139) to
-provide to deno and interaction with the window. Currently pane also provides bindings
-to [pixels](https://github.com/parasyte/pixels) as a way of drawing framebuffers onto
-the window.
+Pane provides bindings for rust crate
+[winit](https://github.com/rust-windowing/winit) in preparation for
+[webgpu](https://github.com/denoland/deno/pull/7977) integration in deno. This
+module will provide a way of getting a
+[`raw_window_handle` resource](https://github.com/denoland/deno/issues/7863#issuecomment-706897139)
+to provide to deno and interaction with the window. Currently pane also provides
+bindings to [pixels](https://github.com/parasyte/pixels) as a way of drawing
+framebuffers onto the window.
 
 ## Example
 
@@ -120,7 +123,8 @@ setInterval(() => {
 
 ### Contribution
 
-Pull request, issues and feedback are very welcome. Code style is formatted with `deno fmt` and commit messages are done following Conventional Commits spec.
+Pull request, issues and feedback are very welcome. Code style is formatted with
+`deno fmt` and commit messages are done following Conventional Commits spec.
 
 ### Licence
 
