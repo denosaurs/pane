@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog], and this project adheres to
 [Semantic Versioning].
 
+## [0.1.2] - 2021-03-21
+
 ## [0.1.1] - 2021-01-29
 
 ### Features
@@ -49,6 +51,7 @@ The format is based on [Keep a Changelog], and this project adheres to
 
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
+[0.1.2]: https://github.com/denosaurs/pane/compare/0.1.1...0.1.2
 [0.1.1]: https://github.com/denosaurs/pane/compare/0.1.0...0.1.1
 [`d3cf502`]: https://github.com/denosaurs/pane/commit/d3cf50210a157d5383a727c603dd05af0dad2adc
 [0.1.0]: https://github.com/denosaurs/pane/compare/0.0.2...0.1.0
