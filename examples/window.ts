@@ -5,7 +5,10 @@ const _pane = new PaneWindow(eventLoop);
 
 setInterval(() => {
   for (const event of eventLoop.step()) {
-    if (event.type === "windowEvent" && event.value.event.type === "closeRequested") {
+    if (
+      event.type === "windowEvent" &&
+      event.value.event.type === "closeRequested"
+    ) {
       Deno.exit();
     }
   }
