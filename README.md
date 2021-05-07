@@ -17,86 +17,51 @@ Pane provides bindings for rust crate
 [webgpu](https://github.com/denoland/deno/pull/7977) integration in deno. This
 module will provide a way of getting a
 [`raw_window_handle` resource](https://github.com/denoland/deno/issues/7863#issuecomment-706897139)
-to provide to deno and interaction with the window. Currently pane also provides
+to provide to deno and interaction with the window. Pane no longer provides
 bindings to [pixels](https://github.com/parasyte/pixels) as a way of drawing
-framebuffers onto the window.
+framebuffers onto the window, instead use WebGPU.
 
 ## Example
 
-### Draw random pixels to window
+### Singe window
 
 ```typescript
-import { Pane } from "https://deno.land/x/pane/mod.ts";
+import { PaneEventLoop, PaneWindow } from "https://deno.land/x/pane/mod.ts";
 
-const width = 320;
-const height = 240;
-
-const pane = new Pane(width, height);
-
-pane.setInnerSize({ logical: { width: width * 2, height: height * 2 } });
-pane.setMinInnerSize({ logical: { width: width * 2, height: height * 2 } });
-pane.setMaxInnerSize({ logical: { width: width * 2, height: height * 2 } });
+const eventLoop = new PaneEventLoop();
+const _pane = new PaneWindow(eventLoop);
 
 setInterval(() => {
-  for (const event of Pane.Step()) {
-    switch (event.type) {
-      case "windowEvent":
-        switch (event.value.event.type) {
-          case "closeRequested":
-            Deno.exit();
-            break;
-          case "resized":
-            pane.resizeFrame(
-              event.value.event.value.width,
-              event.value.event.value.height,
-            );
-            break;
-        }
-        break;
-
-      case "redrawRequested":
-        pane.drawFrame(
-          new Uint8Array(width * height * 4).fill(0).map((_) =>
-            Math.floor(Math.random() * 255)
-          ),
-        );
-        pane.renderFrame();
-        pane.requestRedraw();
-        break;
+  for (const event of eventLoop.step()) {
+    if (
+      event.type === "windowEvent" &&
+      event.value.event.type === "closeRequested"
+    ) {
+      Deno.exit();
     }
   }
-}, 1000 / 30);
+}, 0);
 ```
 
 ### Multiple windows
 
 ```typescript
-import { Pane } from "https://deno.land/x/pane/mod.ts";
-import { serialize } from "https://deno.land/x/pane/helpers.ts";
+import { PaneEventLoop, PaneWindow } from "https://deno.land/x/pane/mod.ts";
 
-const window1 = new Pane();
-const window2 = new Pane();
+const eventLoop = new PaneEventLoop();
+const _pane1 = new PaneWindow(eventLoop);
+const _pane2 = new PaneWindow(eventLoop);
 
 setInterval(() => {
-  for (const event of Pane.Step()) {
-    switch (event.type) {
-      case "windowEvent":
-        console.log(serialize(event, 2));
-        if (event.value.event.type === "closeRequested") {
-          Deno.exit();
-        }
-
-        if (event.value.event.type === "cursorEntered") {
-          if (event.value.windowId === window1.id) {
-            window1.setCursorIcon("hand");
-          } else {
-            window2.setCursorIcon("crosshair");
-          }
-        }
-        break;
+  for (const event of eventLoop.step()) {
+    if (
+      event.type === "windowEvent" &&
+      event.value.event.type === "closeRequested"
+    ) {
+      Deno.exit();
     }
   }
-}, 1000 / 30);
+}, 0);
 ```
 
 ## Maintainers
@@ -117,9 +82,7 @@ setInterval(() => {
 
 ### Related
 
-- [pixels](https://github.com/parasyte/pixels)
 - [winit](https://github.com/rust-windowing/winit)
-- [deno_json_op](https://github.com/denosaurs/deno_json_op)
 
 ### Contribution
 

@@ -1,4 +1,3 @@
-import { sync, syncRaw, unwrap } from "./plugin.ts";
 import {
   CursorIcon,
   Id,
@@ -10,20 +9,46 @@ import {
   UserAttentionType,
 } from "./types.ts";
 
+const core: {
+  opSync: <T>(opName: string, args?: unknown, zeroCopy?: Uint8Array) => T;
+  opAsync: <T>(
+    opName: string,
+    args?: unknown,
+    zeroCopy?: Uint8Array,
+  ) => Promise<T>;
+  // deno-lint-ignore ban-ts-comments
+  // @ts-ignore TS2339
+} = Deno.core;
+
+/**
+ * Represents a winit event loop
+ */
+export class PaneEventLoop {
+  readonly rid: number;
+
+  constructor() {
+    this.rid = core.opSync("pane_event_loop_new");
+  }
+
+  /** Takes a step in this event loop, returning an array of `PaneEvent`s. */
+  step(): PaneEvent[] {
+    return core.opSync("pane_event_loop_step", this.rid);
+  }
+}
+
 /**
  * Represents a window.
  */
-export class Pane {
-  /** Takes a step in the global event loop, returning an array of `PaneEvent`s. */
-  static Step(): PaneEvent[] {
-    return unwrap(sync("event_loop_step"));
-  }
+export class PaneWindow {
+  readonly rid: number;
 
   /** This pane windows unique id. */
-  readonly id: Id;
+  get id(): Id {
+    return core.opSync("pane_window_id", this.rid);
+  }
 
-  constructor(width: number = 320, height: number = 240) {
-    this.id = unwrap(sync("window_new", { width, height }));
+  constructor(eventLoop: PaneEventLoop) {
+    this.rid = core.opSync("pane_window_new", eventLoop.rid);
   }
 
   /**
@@ -31,7 +56,7 @@ export class Pane {
    * pixels, and vice versa.
    */
   scaleFactor(): number {
-    return unwrap(sync("window_scale_factor", { id: this.id }));
+    return core.opSync("pane_window_scale_factor", this.rid);
   }
 
   /**
@@ -42,7 +67,7 @@ export class Pane {
    * with OS-requested redraws (e.g. when a window gets resized).
    */
   requestRedraw(): void {
-    unwrap(sync("window_request_redraw", { id: this.id }));
+    core.opSync("pane_window_request_redraw", this.rid);
   }
 
   /**
@@ -56,7 +81,7 @@ export class Pane {
    * corner of the window is outside of the visible screen region.
    */
   innerPosition(): PhysicalPosition {
-    return unwrap(sync("window_inner_position", { id: this.id }));
+    return core.opSync("pane_window_inner_position", this.rid);
   }
 
   /**
@@ -70,12 +95,15 @@ export class Pane {
    * corner of the window is outside of the visible screen region.
    */
   outerPosition(): PhysicalPosition {
-    return unwrap(sync("window_outer_position", { id: this.id }));
+    return core.opSync("pane_window_outer_position", this.rid);
   }
 
   /** Modifies the position of the window. */
   setOuterPosition(position: Position): void {
-    unwrap(sync("window_set_outer_position", { id: this.id, position }));
+    core.opSync("pane_window_set_outer_position", {
+      rid: this.rid,
+      position,
+    });
   }
 
   /**
@@ -84,7 +112,7 @@ export class Pane {
    * The client area is the content of the window, excluding the title bar and borders.
    */
   innerSize(): PhysicalSize {
-    return unwrap(sync("window_inner_size", { id: this.id }));
+    return core.opSync("pane_window_inner_size", this.rid);
   }
 
   /**
@@ -94,7 +122,7 @@ export class Pane {
    * un-maximizes the window if it's maximized.
    */
   setInnerSize(size: Size): void {
-    unwrap(sync("window_set_inner_size", { id: this.id, size }));
+    core.opSync("pane_window_set_inner_size", { rid: this.rid, size });
   }
 
   /**
@@ -104,26 +132,22 @@ export class Pane {
    * (and you usually don't), use `innerSize` instead.
    */
   outerSize(): PhysicalSize {
-    return unwrap(sync("window_outer_size", { id: this.id }));
+    return core.opSync("pane_window_outer_size", this.rid);
   }
 
   /** Sets a minimum dimension size for the window. */
-  setMinInnerSize(minSize?: Size): void {
-    unwrap(
-      sync("window_set_min_inner_size", { id: this.id, minSize }),
-    );
+  setMinInnerSize(size?: Size): void {
+    core.opSync("pane_window_set_min_inner_size", { rid: this.rid, size });
   }
 
   /** Sets a maximum dimension size for the window. */
-  setMaxInnerSize(maxSize?: Size): void {
-    unwrap(
-      sync("window_set_max_inner_size", { id: this.id, maxSize }),
-    );
+  setMaxInnerSize(size?: Size): void {
+    core.opSync("pane_window_set_max_inner_size", { rid: this.rid, size });
   }
 
   /** Modifies the title of the window. */
   setTitle(title: string): void {
-    unwrap(sync("window_set_title", { id: this.id, title }));
+    core.opSync("pane_window_set_title", { rid: this.rid, title });
   }
 
   /**
@@ -132,7 +156,7 @@ export class Pane {
    * If `false`, this will hide the window. If `true`, this will show the window.
    */
   setVisible(visible: boolean): void {
-    unwrap(sync("window_set_visible", { id: this.id, visible }));
+    core.opSync("pane_window_set_visible", { rid: this.rid, visible });
   }
 
   /**
@@ -143,32 +167,33 @@ export class Pane {
    * fullscreen mode, etc.
    */
   setResizable(resizable: boolean): void {
-    unwrap(sync("window_set_resizable", { id: this.id, resizable }));
+    core.opSync("pane_window_set_resizable", { rid: this.rid, resizable });
   }
 
   /** Sets the window to minimized or back. */
   setMinimized(minimized: boolean): void {
-    unwrap(sync("window_set_minimized", { id: this.id, minimized }));
+    core.opSync("pane_window_set_minimized", { rid: this.rid, minimized });
   }
 
   /** Sets the window to maximized or back. */
   setMaximized(maximized: boolean): void {
-    unwrap(sync("window_set_maximized", { id: this.id, maximized }));
+    core.opSync("pane_window_set_maximized", { rid: this.rid, maximized });
   }
 
   /** Turn window decorations on or off. */
   setDecorations(decorations: boolean): void {
-    unwrap(sync("window_set_decorations", { id: this.id, decorations }));
+    core.opSync("pane_window_set_decorations", {
+      rid: this.rid,
+      decorations,
+    });
   }
 
   /** Change whether or not the window will always be on top of other windows. */
   setAlwaysOnTop(alwaysOnTop: boolean): void {
-    unwrap(
-      sync(
-        "window_set_always_on_top",
-        { id: this.id, alwaysOnTop },
-      ),
-    );
+    core.opSync("pane_window_set_always_on_top", {
+      rid: this.rid,
+      alwaysOnTop,
+    });
   }
 
   /**
@@ -180,12 +205,12 @@ export class Pane {
     width: number,
     height: number,
   ): void {
-    unwrap(
-      sync(
-        "window_set_window_icon",
-        { id: this.id, rgba: Array.from(rgba), width, height },
-      ),
-    );
+    core.opSync("pane_window_set_window_icon", {
+      rid: this.rid,
+      rgba,
+      width,
+      height,
+    });
   }
 
   /**
@@ -193,7 +218,10 @@ export class Pane {
    * the top left.
    */
   setImePosition(position: Position): void {
-    unwrap(sync("window_set_ime_position", { id: this.id, position }));
+    core.opSync("pane_window_set_ime_position", {
+      rid: this.rid,
+      position,
+    });
   }
 
   /**
@@ -206,17 +234,23 @@ export class Pane {
    * the window receives input.
    */
   requestUserAttention(requestType?: UserAttentionType) {
-    unwrap(sync("window_request_user_attention", { id: this.id, requestType }));
+    core.opSync("pane_window_request_user_attention", {
+      rid: this.rid,
+      requestType,
+    });
   }
 
   /** Modifies the cursor icon of the window. */
   setCursorIcon(cursor: CursorIcon): void {
-    unwrap(sync("window_set_cursor_icon", { id: this.id, cursor }));
+    core.opSync("window_set_cursor_icon", { rid: this.rid, cursor });
   }
 
   /** Changes the position of the cursor in window coordinates. */
   setCursorPosition(position: Position): void {
-    unwrap(sync("window_set_cursor_position", { id: this.id, position }));
+    core.opSync("pane_window_set_cursor_position", {
+      rid: this.rid,
+      position,
+    });
   }
 
   /**
@@ -226,7 +260,7 @@ export class Pane {
    * yourself if you want so.
    */
   setCursorGrab(grab: boolean): void {
-    unwrap(sync("window_set_cursor_grab", { id: this.id, grab }));
+    core.opSync("pane_window_set_cursor_grab", { rid: this.rid, grab });
   }
 
   /**
@@ -235,42 +269,9 @@ export class Pane {
    * If `false`, this will hide the cursor. If `true`, this will show the cursor.
    */
   setCursorVisible(visible: boolean): void {
-    unwrap(sync("window_set_cursor_visible", { id: this.id, visible }));
-  }
-
-  /**
-   * Renders the current pixels buffer as set by `drawFrame`.
-   */
-  renderFrame(): void {
-    unwrap(sync("window_render_frame", { id: this.id }));
-  }
-
-  /**
-   * Sets the current pixels buffer to whatever is provided.
-   * 
-   * Buf needs to be of size `width * height * 4` and in raw
-   * RGBA value.
-   */
-  drawFrame(buf: Uint8Array): void {
-    unwrap(sync("window_draw_frame", { id: this.id }, buf));
-  }
-
-  /** 
-   * Resize the surface upon which the pixel buffer is rendered.
-   * 
-   * This does not resize the pixel buffer. The pixel buffer will be fit onto the
-   * surface as best as possible by scaling to the nearest integer, e.g. 2x, 3x,
-   * 4x, etc.
-   * 
-   * Call this method in response to a `resize`. The size expected is in physical
-   * pixel units.
-   */
-  resizeFrame(width: number, height: number): void {
-    unwrap(sync("window_resize_frame", { id: this.id, width, height }));
-  }
-
-  /** Returns the current pixels buffer stored in this pane window */
-  viewFrame(): Uint8Array {
-    return syncRaw("window_view_frame", { id: this.id });
+    core.opSync("pane_window_set_cursor_visible", {
+      rid: this.rid,
+      visible,
+    });
   }
 }

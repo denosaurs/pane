@@ -1,6 +1,3 @@
-/** A wrapped result from rust. */
-export type Result<T> = { err: string } | { ok: T };
-
 /** A 64 bit uint identifier. */
 export type Id = bigint;
 

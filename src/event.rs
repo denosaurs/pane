@@ -5,7 +5,6 @@ use deno_core::serde::Serialize;
 
 use winit::dpi::PhysicalPosition;
 use winit::dpi::PhysicalSize;
-
 use winit::event::AxisId;
 use winit::event::ButtonId;
 use winit::event::ElementState;
@@ -171,7 +170,7 @@ pub enum WindowEvent {
   DroppedFile(PathBuf),
   HoveredFile(PathBuf),
   HoveredFileCancelled,
-  ReceivedCharacter(char),
+  ReceivedCharacter(String),
   Focused(bool),
   #[serde(rename_all = "camelCase")]
   KeyboardInput {
@@ -244,17 +243,11 @@ pub struct Touch {
 
 impl From<winit::event::Touch> for Touch {
   fn from(touch: winit::event::Touch) -> Self {
-    let force = if let Some(force) = touch.force {
-      Some(Force::from(force))
-    } else {
-      None
-    };
-
     Touch {
       device_id: hash(touch.device_id),
       phase: touch.phase,
       location: touch.location,
-      force,
+      force: touch.force.map(Force::from),
       id: touch.id,
     }
   }
@@ -322,7 +315,7 @@ impl From<winit::event::WindowEvent<'_>> for WindowEvent {
         WindowEvent::HoveredFileCancelled
       }
       winit::event::WindowEvent::ReceivedCharacter(ch) => {
-        WindowEvent::ReceivedCharacter(ch)
+        WindowEvent::ReceivedCharacter(ch.to_string())
       }
       winit::event::WindowEvent::Focused(foc) => WindowEvent::Focused(foc),
       winit::event::WindowEvent::KeyboardInput {
@@ -438,7 +431,7 @@ pub enum DeviceEvent {
   #[serde(with = "KeyboardInputDef")]
   Key(KeyboardInput),
   Text {
-    codepoint: char,
+    codepoint: String,
   },
 }
 
@@ -462,9 +455,9 @@ impl From<winit::event::DeviceEvent> for DeviceEvent {
       winit::event::DeviceEvent::Key(keyboard_input) => {
         DeviceEvent::Key(keyboard_input)
       }
-      winit::event::DeviceEvent::Text { codepoint } => {
-        DeviceEvent::Text { codepoint }
-      }
+      winit::event::DeviceEvent::Text { codepoint } => DeviceEvent::Text {
+        codepoint: codepoint.to_string(),
+      },
     }
   }
 }

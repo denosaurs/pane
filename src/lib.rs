@@ -1,759 +1,650 @@
+use std::borrow::Cow;
 use std::cell::RefCell;
-use std::collections::HashMap;
 
-use winit::dpi::LogicalSize;
-use winit::dpi::PhysicalSize;
-
-use deno_core::error::anyhow;
+use deno_core::error::bad_resource_id;
 use deno_core::error::AnyError;
-
-use deno_core::plugin_api::Interface;
-use deno_core::plugin_api::Op;
-use deno_core::plugin_api::ZeroCopyBuf;
-
+use deno_core::op_sync;
 use deno_core::serde::Deserialize;
+use deno_core::Extension;
+use deno_core::OpState;
+use deno_core::Resource;
+use deno_core::ResourceId;
+use deno_core::ZeroCopyBuf;
 
-use deno_core::serde_json;
-use deno_core::serde_json::json;
-use deno_core::serde_json::Value;
-
-use deno_json_op::json_op;
-
-use winit::dpi::LogicalPosition;
+use helpers::hash;
 use winit::dpi::PhysicalPosition;
+use winit::dpi::PhysicalSize;
 use winit::dpi::Position;
 use winit::dpi::Size;
-
 use winit::event_loop::ControlFlow;
 use winit::event_loop::EventLoop;
 use winit::platform::run_return::EventLoopExtRunReturn;
 use winit::window::CursorIcon;
-use winit::window::UserAttentionType;
+use winit::window::Icon;
+use winit::window::Window;
 
 mod event;
 mod helpers;
-mod window;
 
 use event::Event;
-use window::Window;
 
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase", remote = "UserAttentionType")]
-pub enum UserAttentionTypeDef {
+#[serde(rename_all = "camelCase")]
+pub enum UserAttentionType {
   Critical,
   Informational,
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase", remote = "Position")]
-pub enum PositionDef {
-  Physical(PhysicalPosition<i32>),
-  Logical(LogicalPosition<f64>),
+impl From<UserAttentionType> for winit::window::UserAttentionType {
+  fn from(request_type: UserAttentionType) -> Self {
+    match request_type {
+      UserAttentionType::Critical => winit::window::UserAttentionType::Critical,
+      UserAttentionType::Informational => {
+        winit::window::UserAttentionType::Informational
+      }
+    }
+  }
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase", remote = "Size")]
-pub enum SizeDef {
-  Physical(PhysicalSize<u32>),
-  Logical(LogicalSize<f64>),
+#[serde(rename_all = "camelCase")]
+struct WindowPositionArgs {
+  rid: ResourceId,
+  position: Position,
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase", remote = "CursorIcon")]
-pub enum CursorIconDef {
-  Default,
-  Crosshair,
-  Hand,
-  Arrow,
-  Move,
-  Text,
-  Wait,
-  Help,
-  Progress,
-  NotAllowed,
-  ContextMenu,
-  Cell,
-  VerticalText,
-  Alias,
-  Copy,
-  NoDrop,
-  Grab,
-  Grabbing,
-  AllScroll,
-  ZoomIn,
-  ZoomOut,
-  EResize,
-  NResize,
-  NeResize,
-  NwResize,
-  SResize,
-  SeResize,
-  SwResize,
-  WResize,
-  EwResize,
-  NsResize,
-  NeswResize,
-  NwseResize,
-  ColResize,
-  RowResize,
+#[serde(rename_all = "camelCase")]
+struct WindowSizeArgs {
+  rid: ResourceId,
+  size: Size,
 }
 
-thread_local! {
-  static EVENT_LOOP: RefCell<EventLoop<()>> = RefCell::new(EventLoop::new());
-  static WINDOW_MAP: RefCell<HashMap<u64, Window>> = RefCell::new(HashMap::new());
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WindowOptionSizeArgs {
+  rid: ResourceId,
+  size: Option<Size>,
+}
+
+#[derive(Deserialize)]
+struct WindowTitleArgs {
+  rid: ResourceId,
+  title: String,
+}
+
+#[derive(Deserialize)]
+struct WindowVisibleArgs {
+  rid: ResourceId,
+  visible: bool,
+}
+
+#[derive(Deserialize)]
+struct WindowResizableArgs {
+  rid: ResourceId,
+  resizable: bool,
+}
+
+#[derive(Deserialize)]
+struct WindowMinimizedArgs {
+  rid: ResourceId,
+  minimized: bool,
+}
+
+#[derive(Deserialize)]
+struct WindowMaximizedArgs {
+  rid: ResourceId,
+  maximized: bool,
+}
+
+#[derive(Deserialize)]
+struct WindowDecorationsArgs {
+  rid: ResourceId,
+  decorations: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WindowAlwaysOnTopArgs {
+  rid: ResourceId,
+  always_on_top: bool,
+}
+
+#[derive(Deserialize)]
+struct WindowIconArgs {
+  rid: ResourceId,
+  rgba: Vec<u8>,
+  width: u32,
+  height: u32,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WindowUserAttentionArgs {
+  rid: ResourceId,
+  request_type: Option<UserAttentionType>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WindowCursorIconArgs {
+  rid: ResourceId,
+  cursor: CursorIcon,
+}
+
+#[derive(Deserialize)]
+struct WindowCursorGrabArgs {
+  rid: ResourceId,
+  grab: bool,
+}
+
+struct EventLoopResource(RefCell<EventLoop<()>>);
+
+impl Resource for EventLoopResource {
+  fn name(&self) -> Cow<str> {
+    "eventLoop".into()
+  }
+}
+
+struct WindowResource(Window);
+
+impl WindowResource {
+  pub fn new(event_loop: &EventLoop<()>) -> Result<Self, AnyError> {
+    Ok(Self(winit::window::Window::new(event_loop)?))
+  }
+
+  pub fn id(&self) -> u64 {
+    hash(self.0.id())
+  }
+}
+
+impl Resource for WindowResource {
+  fn name(&self) -> Cow<str> {
+    "window".into()
+  }
 }
 
 #[no_mangle]
-pub fn deno_plugin_init(interface: &mut dyn Interface) {
-  interface.register_op("window_new", window_new);
-  interface.register_op("window_scale_factor", window_scale_factor);
-  interface.register_op("window_request_redraw", window_request_redraw);
-  interface.register_op("window_inner_position", window_inner_position);
-  interface.register_op("window_outer_position", window_outer_position);
-  interface.register_op("window_set_outer_position", window_set_outer_position);
-  interface.register_op("window_inner_size", window_inner_size);
-  interface.register_op("window_set_inner_size", window_set_inner_size);
-  interface.register_op("window_outer_size", window_outer_size);
-  interface.register_op("window_set_min_inner_size", window_set_min_inner_size);
-  interface.register_op("window_set_max_inner_size", window_set_max_inner_size);
-  interface.register_op("window_set_title", window_set_title);
-  interface.register_op("window_set_visible", window_set_visible);
-  interface.register_op("window_set_resizable", window_set_resizable);
-  interface.register_op("window_set_minimized", window_set_minimized);
-  interface.register_op("window_set_maximized", window_set_maximized);
-  interface.register_op("window_set_decorations", window_set_decorations);
-  interface.register_op("window_set_always_on_top", window_set_always_on_top);
-  interface.register_op("window_set_window_icon", window_set_window_icon);
-  interface.register_op("window_set_ime_position", window_set_ime_position);
-  interface.register_op(
-    "window_request_user_attention",
-    window_request_user_attention,
-  );
-  interface.register_op("window_set_cursor_icon", window_set_cursor_icon);
-  interface
-    .register_op("window_set_cursor_position", window_set_cursor_position);
-  interface.register_op("window_set_cursor_grab", window_set_cursor_grab);
-  interface.register_op("window_set_cursor_visible", window_set_cursor_visible);
-  interface.register_op("window_render_frame", window_render_frame);
-  interface.register_op("window_draw_frame", window_draw_frame);
-  interface.register_op("window_resize_frame", window_resize_frame);
-  interface.register_op("window_view_frame", window_view_frame);
-
-  interface.register_op("event_loop_step", event_loop_step);
+pub fn init() -> Extension {
+  Extension::builder()
+    .ops(vec![
+      ("pane_event_loop_new", op_sync(event_loop_new)),
+      ("pane_event_loop_step", op_sync(event_loop_step)),
+      ("pane_window_new", op_sync(window_new)),
+      ("pane_window_id", op_sync(window_id)),
+      ("pane_window_scale_factor", op_sync(window_scale_factor)),
+      ("pane_window_request_redraw", op_sync(window_request_redraw)),
+      ("pane_window_inner_position", op_sync(window_inner_position)),
+      ("pane_window_outer_position", op_sync(window_outer_position)),
+      (
+        "pane_window_set_outer_position",
+        op_sync(window_set_outer_position),
+      ),
+      ("pane_window_inner_size", op_sync(window_inner_size)),
+      ("pane_window_set_inner_size", op_sync(window_set_inner_size)),
+      ("pane_window_outer_size", op_sync(window_outer_size)),
+      (
+        "pane_window_set_min_inner_size",
+        op_sync(window_set_min_inner_size),
+      ),
+      (
+        "pane_window_set_max_inner_size",
+        op_sync(window_set_max_inner_size),
+      ),
+      ("pane_window_set_title", op_sync(window_set_title)),
+      ("pane_window_set_visible", op_sync(window_set_visible)),
+      ("pane_window_set_resizable", op_sync(window_set_resizable)),
+      ("pane_window_set_minimized", op_sync(window_set_minimized)),
+      ("pane_window_set_maximized", op_sync(window_set_maximized)),
+      (
+        "pane_window_set_decorations",
+        op_sync(window_set_decorations),
+      ),
+      (
+        "pane_window_set_always_on_top",
+        op_sync(window_set_always_on_top),
+      ),
+      (
+        "pane_window_set_window_icon",
+        op_sync(window_set_window_icon),
+      ),
+      (
+        "pane_window_set_ime_position",
+        op_sync(window_set_ime_position),
+      ),
+      (
+        "pane_window_request_user_attention",
+        op_sync(window_request_user_attention),
+      ),
+      (
+        "pane_window_set_cursor_icon",
+        op_sync(window_set_cursor_icon),
+      ),
+      (
+        "pane_window_set_cursor_position",
+        op_sync(window_set_cursor_position),
+      ),
+      (
+        "pane_window_set_cursor_grab",
+        op_sync(window_set_cursor_grab),
+      ),
+      (
+        "pane_window_set_cursor_visible",
+        op_sync(window_set_cursor_visible),
+      ),
+    ])
+    .build()
 }
 
-#[json_op]
-fn window_new(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let width = json["width"].as_u64().unwrap() as u32;
-  let height = json["height"].as_u64().unwrap() as u32;
-
-  WINDOW_MAP.with(|cell| {
-    let mut window_map = cell.borrow_mut();
-    EVENT_LOOP.with(|cell| {
-      let event_loop = cell.borrow();
-      let window = Window::new(&event_loop, width, height)?;
-      let id = window.id();
-      window_map.insert(id, window);
-      Ok(json!(id))
-    })
-  })
+fn event_loop_new(
+  state: &mut OpState,
+  _args: (),
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<ResourceId, AnyError> {
+  Ok(
+    state
+      .resource_table
+      .add(EventLoopResource(RefCell::new(EventLoop::new()))),
+  )
 }
 
-#[json_op]
-fn window_scale_factor(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      Ok(json!(window.scale_factor()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_request_redraw(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      Ok(json!(window.request_redraw()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_inner_position(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      let position = window.inner_position()?;
-      Ok(json!(position))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_outer_position(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      let position = window.outer_position()?;
-      Ok(json!(position))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_set_outer_position(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let position: Position =
-    PositionDef::deserialize(json["position"].to_owned()).unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.set_outer_position(position);
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_inner_size(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      Ok(json!(window.inner_size()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_set_inner_size(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let size: Size = SizeDef::deserialize(json["size"].to_owned()).unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.set_inner_size(size);
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_outer_size(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      Ok(json!(window.outer_size()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_set_min_inner_size(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let min_size: Option<Size> =
-    if let Ok(size) = SizeDef::deserialize(json["minSize"].to_owned()) {
-      Some(size)
-    } else {
-      None
-    };
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.set_min_inner_size(min_size);
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_set_max_inner_size(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let max_size: Option<Size> =
-    if let Ok(size) = SizeDef::deserialize(json["maxSize"].to_owned()) {
-      Some(size)
-    } else {
-      None
-    };
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.set_max_inner_size(max_size);
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_set_title(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let title = json["title"].as_str().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.set_title(title);
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_set_visible(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let visible = json["visible"].as_bool().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.set_visible(visible);
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_set_resizable(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let resizable = json["resizable"].as_bool().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.set_resizable(resizable);
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_set_minimized(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let minimized = json["minimized"].as_bool().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.set_minimized(minimized);
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_set_maximized(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let maximized = json["maximized"].as_bool().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.set_maximized(maximized);
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_set_decorations(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let decorations = json["decorations"].as_bool().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.set_decorations(decorations);
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_set_always_on_top(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let always_on_top = json["alwaysOnTop"].as_bool().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.set_always_on_top(always_on_top);
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_set_window_icon(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let rgba: Vec<u8> = json["rgba"]
-    .as_array()
-    .unwrap()
-    .iter()
-    .map(|v| v.as_u64().unwrap() as u8)
-    .collect();
-  let width = json["width"].as_u64().unwrap();
-  let height = json["height"].as_u64().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.set_window_icon(rgba, width, height)?;
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_set_ime_position(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let position: Position =
-    PositionDef::deserialize(json["position"].to_owned()).unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.set_ime_position(position);
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_request_user_attention(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let request_type: Option<UserAttentionType> = if json["requestType"].is_null()
-  {
-    None
-  } else {
-    Some(
-      UserAttentionTypeDef::deserialize(json["requestType"].to_owned())
-        .unwrap(),
-    )
-  };
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.request_user_attention(request_type);
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_set_cursor_icon(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let cursor: CursorIcon =
-    CursorIconDef::deserialize(json["cursor"].to_owned()).unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.set_cursor_icon(cursor);
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_set_cursor_position(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let position: Position =
-    PositionDef::deserialize(json["position"].to_owned()).unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.set_cursor_position(position)?;
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_set_cursor_grab(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let grab = json["grab"].as_bool().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.set_cursor_grab(grab)?;
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_set_cursor_visible(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let visible = json["visible"].as_bool().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let window_map = cell.borrow();
-
-    if let Some(window) = window_map.get(&id) {
-      window.set_cursor_visible(visible);
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_render_frame(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let mut window_map = cell.borrow_mut();
-
-    if let Some(window) = window_map.get_mut(&id) {
-      window.render_frame()?;
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_draw_frame(
-  json: Value,
-  zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let mut window_map = cell.borrow_mut();
-
-    if let Some(window) = window_map.get_mut(&id) {
-      window.draw_frame(&mut zero_copy[0]);
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-#[json_op]
-fn window_resize_frame(
-  json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
-  let id = json["id"].as_u64().unwrap();
-  let width = json["width"].as_u64().unwrap() as u32;
-  let height = json["height"].as_u64().unwrap() as u32;
-
-  WINDOW_MAP.with(|cell| {
-    let mut window_map = cell.borrow_mut();
-
-    if let Some(window) = window_map.get_mut(&id) {
-      window.resize_frame(width, height);
-      Ok(json!(()))
-    } else {
-      Err(anyhow!("Could not find window with id: {}", id))
-    }
-  })
-}
-
-fn window_view_frame(
-  _interface: &mut dyn Interface,
-  zero_copy: &mut [ZeroCopyBuf],
-) -> Op {
-  let json: Value = serde_json::from_slice(&zero_copy[0]).unwrap();
-  let id = json["id"].as_u64().unwrap();
-
-  WINDOW_MAP.with(|cell| {
-    let mut window_map = cell.borrow_mut();
-
-    if let Some(window) = window_map.get_mut(&id) {
-      let frame = Box::from(window.view_frame());
-      Op::Sync(frame)
-    } else {
-      panic!("Could not get frame buffer");
-    }
-  })
-}
-
-#[json_op]
 fn event_loop_step(
-  _json: Value,
-  _zero_copy: &mut [ZeroCopyBuf],
-) -> Result<Value, AnyError> {
+  state: &mut OpState,
+  rid: ResourceId,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<Vec<Event>, AnyError> {
+  let event_loop = state
+    .resource_table
+    .get::<EventLoopResource>(rid)
+    .ok_or_else(bad_resource_id)?;
   let mut events = Vec::new();
 
-  EVENT_LOOP.with(|cell| {
-    let event_loop = &mut *cell.borrow_mut();
-    event_loop.run_return(|event, _, control_flow| {
+  event_loop
+    .0
+    .borrow_mut()
+    .run_return(|event, _, control_flow| {
       *control_flow = ControlFlow::Exit;
-
       events.push(Event::from(event));
     });
-  });
 
-  Ok(json!(events))
+  Ok(events)
+}
+
+fn window_new(
+  state: &mut OpState,
+  rid: ResourceId,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<ResourceId, AnyError> {
+  let event_loop = state
+    .resource_table
+    .get::<EventLoopResource>(rid)
+    .ok_or_else(bad_resource_id)?;
+
+  let event_loop = event_loop.0.borrow_mut();
+
+  Ok(state.resource_table.add(WindowResource::new(&event_loop)?))
+}
+
+fn window_id(
+  state: &mut OpState,
+  rid: ResourceId,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<u64, AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(rid)
+    .ok_or_else(bad_resource_id)?;
+
+  Ok(window.id())
+}
+
+fn window_scale_factor(
+  state: &mut OpState,
+  rid: ResourceId,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<f64, AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(rid)
+    .ok_or_else(bad_resource_id)?;
+
+  Ok(window.0.scale_factor())
+}
+
+fn window_request_redraw(
+  state: &mut OpState,
+  rid: ResourceId,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window.0.request_redraw();
+
+  Ok(())
+}
+
+fn window_inner_position(
+  state: &mut OpState,
+  rid: ResourceId,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<PhysicalPosition<i32>, AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(rid)
+    .ok_or_else(bad_resource_id)?;
+
+  Ok(window.0.inner_position()?)
+}
+
+fn window_outer_position(
+  state: &mut OpState,
+  rid: ResourceId,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<PhysicalPosition<i32>, AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(rid)
+    .ok_or_else(bad_resource_id)?;
+
+  Ok(window.0.outer_position()?)
+}
+
+fn window_set_outer_position(
+  state: &mut OpState,
+  args: WindowPositionArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window.0.set_outer_position(args.position);
+
+  Ok(())
+}
+
+fn window_inner_size(
+  state: &mut OpState,
+  rid: ResourceId,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<PhysicalSize<u32>, AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(rid)
+    .ok_or_else(bad_resource_id)?;
+
+  Ok(window.0.inner_size())
+}
+
+fn window_set_inner_size(
+  state: &mut OpState,
+  args: WindowSizeArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window.0.set_inner_size(args.size);
+
+  Ok(())
+}
+
+fn window_outer_size(
+  state: &mut OpState,
+  rid: ResourceId,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<PhysicalSize<u32>, AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(rid)
+    .ok_or_else(bad_resource_id)?;
+
+  Ok(window.0.outer_size())
+}
+
+fn window_set_min_inner_size(
+  state: &mut OpState,
+  args: WindowOptionSizeArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window.0.set_min_inner_size(args.size);
+
+  Ok(())
+}
+
+fn window_set_max_inner_size(
+  state: &mut OpState,
+  args: WindowOptionSizeArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window.0.set_max_inner_size(args.size);
+
+  Ok(())
+}
+
+fn window_set_title(
+  state: &mut OpState,
+  args: WindowTitleArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window.0.set_title(&args.title);
+
+  Ok(())
+}
+
+fn window_set_visible(
+  state: &mut OpState,
+  args: WindowVisibleArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window.0.set_visible(args.visible);
+
+  Ok(())
+}
+
+fn window_set_resizable(
+  state: &mut OpState,
+  args: WindowResizableArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window.0.set_resizable(args.resizable);
+
+  Ok(())
+}
+
+fn window_set_minimized(
+  state: &mut OpState,
+  args: WindowMinimizedArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window.0.set_minimized(args.minimized);
+
+  Ok(())
+}
+
+fn window_set_maximized(
+  state: &mut OpState,
+  args: WindowMaximizedArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window.0.set_maximized(args.maximized);
+
+  Ok(())
+}
+
+fn window_set_decorations(
+  state: &mut OpState,
+  args: WindowDecorationsArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window.0.set_decorations(args.decorations);
+
+  Ok(())
+}
+
+fn window_set_always_on_top(
+  state: &mut OpState,
+  args: WindowAlwaysOnTopArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window.0.set_always_on_top(args.always_on_top);
+
+  Ok(())
+}
+
+fn window_set_window_icon(
+  state: &mut OpState,
+  args: WindowIconArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window
+    .0
+    .set_window_icon(Icon::from_rgba(args.rgba, args.width, args.height).ok());
+  Ok(())
+}
+
+fn window_set_ime_position(
+  state: &mut OpState,
+  args: WindowPositionArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window.0.set_ime_position(args.position);
+
+  Ok(())
+}
+
+fn window_request_user_attention(
+  state: &mut OpState,
+  args: WindowUserAttentionArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window.0.request_user_attention(
+    args
+      .request_type
+      .map(winit::window::UserAttentionType::from),
+  );
+
+  Ok(())
+}
+
+fn window_set_cursor_icon(
+  state: &mut OpState,
+  args: WindowCursorIconArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window.0.set_cursor_icon(args.cursor);
+
+  Ok(())
+}
+
+fn window_set_cursor_position(
+  state: &mut OpState,
+  args: WindowPositionArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  Ok(window.0.set_cursor_position(args.position)?)
+}
+
+fn window_set_cursor_grab(
+  state: &mut OpState,
+  args: WindowCursorGrabArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  Ok(window.0.set_cursor_grab(args.grab)?)
+}
+
+fn window_set_cursor_visible(
+  state: &mut OpState,
+  args: WindowVisibleArgs,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(args.rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window.0.set_cursor_visible(args.visible);
+
+  Ok(())
 }
