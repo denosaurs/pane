@@ -1,3 +1,4 @@
+import { Plug } from "./deps.ts";
 import {
   CursorIcon,
   Id,
@@ -9,17 +10,6 @@ import {
   UserAttentionType,
 } from "./types.ts";
 
-const core: {
-  opSync: <T>(opName: string, args?: unknown, zeroCopy?: Uint8Array) => T;
-  opAsync: <T>(
-    opName: string,
-    args?: unknown,
-    zeroCopy?: Uint8Array,
-  ) => Promise<T>;
-  // deno-lint-ignore ban-ts-comments
-  // @ts-ignore TS2339
-} = Deno.core;
-
 /**
  * Represents a winit event loop
  */
@@ -27,12 +17,12 @@ export class PaneEventLoop {
   readonly rid: number;
 
   constructor() {
-    this.rid = core.opSync("pane_event_loop_new");
+    this.rid = Plug.core.opSync("pane_event_loop_new");
   }
 
   /** Takes a step in this event loop, returning an array of `PaneEvent`s. */
   step(): PaneEvent[] {
-    return core.opSync("pane_event_loop_step", this.rid);
+    return Plug.core.opSync("pane_event_loop_step", this.rid);
   }
 }
 
@@ -44,11 +34,11 @@ export class PaneWindow {
 
   /** This pane windows unique id. */
   get id(): Id {
-    return core.opSync("pane_window_id", this.rid);
+    return Plug.core.opSync("pane_window_id", this.rid);
   }
 
   constructor(eventLoop: PaneEventLoop) {
-    this.rid = core.opSync("pane_window_new", eventLoop.rid);
+    this.rid = Plug.core.opSync("pane_window_new", eventLoop.rid);
   }
 
   /**
@@ -56,7 +46,7 @@ export class PaneWindow {
    * pixels, and vice versa.
    */
   scaleFactor(): number {
-    return core.opSync("pane_window_scale_factor", this.rid);
+    return Plug.core.opSync("pane_window_scale_factor", this.rid);
   }
 
   /**
@@ -67,7 +57,7 @@ export class PaneWindow {
    * with OS-requested redraws (e.g. when a window gets resized).
    */
   requestRedraw(): void {
-    core.opSync("pane_window_request_redraw", this.rid);
+    Plug.core.opSync("pane_window_request_redraw", this.rid);
   }
 
   /**
@@ -81,7 +71,7 @@ export class PaneWindow {
    * corner of the window is outside of the visible screen region.
    */
   innerPosition(): PhysicalPosition {
-    return core.opSync("pane_window_inner_position", this.rid);
+    return Plug.core.opSync("pane_window_inner_position", this.rid);
   }
 
   /**
@@ -95,12 +85,12 @@ export class PaneWindow {
    * corner of the window is outside of the visible screen region.
    */
   outerPosition(): PhysicalPosition {
-    return core.opSync("pane_window_outer_position", this.rid);
+    return Plug.core.opSync("pane_window_outer_position", this.rid);
   }
 
   /** Modifies the position of the window. */
   setOuterPosition(position: Position): void {
-    core.opSync("pane_window_set_outer_position", {
+    Plug.core.opSync("pane_window_set_outer_position", {
       rid: this.rid,
       position,
     });
@@ -112,7 +102,7 @@ export class PaneWindow {
    * The client area is the content of the window, excluding the title bar and borders.
    */
   innerSize(): PhysicalSize {
-    return core.opSync("pane_window_inner_size", this.rid);
+    return Plug.core.opSync("pane_window_inner_size", this.rid);
   }
 
   /**
@@ -122,7 +112,7 @@ export class PaneWindow {
    * un-maximizes the window if it's maximized.
    */
   setInnerSize(size: Size): void {
-    core.opSync("pane_window_set_inner_size", { rid: this.rid, size });
+    Plug.core.opSync("pane_window_set_inner_size", { rid: this.rid, size });
   }
 
   /**
@@ -132,22 +122,22 @@ export class PaneWindow {
    * (and you usually don't), use `innerSize` instead.
    */
   outerSize(): PhysicalSize {
-    return core.opSync("pane_window_outer_size", this.rid);
+    return Plug.core.opSync("pane_window_outer_size", this.rid);
   }
 
   /** Sets a minimum dimension size for the window. */
   setMinInnerSize(size?: Size): void {
-    core.opSync("pane_window_set_min_inner_size", { rid: this.rid, size });
+    Plug.core.opSync("pane_window_set_min_inner_size", { rid: this.rid, size });
   }
 
   /** Sets a maximum dimension size for the window. */
   setMaxInnerSize(size?: Size): void {
-    core.opSync("pane_window_set_max_inner_size", { rid: this.rid, size });
+    Plug.core.opSync("pane_window_set_max_inner_size", { rid: this.rid, size });
   }
 
   /** Modifies the title of the window. */
   setTitle(title: string): void {
-    core.opSync("pane_window_set_title", { rid: this.rid, title });
+    Plug.core.opSync("pane_window_set_title", { rid: this.rid, title });
   }
 
   /**
@@ -156,7 +146,7 @@ export class PaneWindow {
    * If `false`, this will hide the window. If `true`, this will show the window.
    */
   setVisible(visible: boolean): void {
-    core.opSync("pane_window_set_visible", { rid: this.rid, visible });
+    Plug.core.opSync("pane_window_set_visible", { rid: this.rid, visible });
   }
 
   /**
@@ -167,22 +157,22 @@ export class PaneWindow {
    * fullscreen mode, etc.
    */
   setResizable(resizable: boolean): void {
-    core.opSync("pane_window_set_resizable", { rid: this.rid, resizable });
+    Plug.core.opSync("pane_window_set_resizable", { rid: this.rid, resizable });
   }
 
   /** Sets the window to minimized or back. */
   setMinimized(minimized: boolean): void {
-    core.opSync("pane_window_set_minimized", { rid: this.rid, minimized });
+    Plug.core.opSync("pane_window_set_minimized", { rid: this.rid, minimized });
   }
 
   /** Sets the window to maximized or back. */
   setMaximized(maximized: boolean): void {
-    core.opSync("pane_window_set_maximized", { rid: this.rid, maximized });
+    Plug.core.opSync("pane_window_set_maximized", { rid: this.rid, maximized });
   }
 
   /** Turn window decorations on or off. */
   setDecorations(decorations: boolean): void {
-    core.opSync("pane_window_set_decorations", {
+    Plug.core.opSync("pane_window_set_decorations", {
       rid: this.rid,
       decorations,
     });
@@ -190,7 +180,7 @@ export class PaneWindow {
 
   /** Change whether or not the window will always be on top of other windows. */
   setAlwaysOnTop(alwaysOnTop: boolean): void {
-    core.opSync("pane_window_set_always_on_top", {
+    Plug.core.opSync("pane_window_set_always_on_top", {
       rid: this.rid,
       alwaysOnTop,
     });
@@ -205,7 +195,7 @@ export class PaneWindow {
     width: number,
     height: number,
   ): void {
-    core.opSync("pane_window_set_window_icon", {
+    Plug.core.opSync("pane_window_set_window_icon", {
       rid: this.rid,
       rgba,
       width,
@@ -218,7 +208,7 @@ export class PaneWindow {
    * the top left.
    */
   setImePosition(position: Position): void {
-    core.opSync("pane_window_set_ime_position", {
+    Plug.core.opSync("pane_window_set_ime_position", {
       rid: this.rid,
       position,
     });
@@ -234,7 +224,7 @@ export class PaneWindow {
    * the window receives input.
    */
   requestUserAttention(requestType?: UserAttentionType) {
-    core.opSync("pane_window_request_user_attention", {
+    Plug.core.opSync("pane_window_request_user_attention", {
       rid: this.rid,
       requestType,
     });
@@ -242,12 +232,12 @@ export class PaneWindow {
 
   /** Modifies the cursor icon of the window. */
   setCursorIcon(cursor: CursorIcon): void {
-    core.opSync("window_set_cursor_icon", { rid: this.rid, cursor });
+    Plug.core.opSync("window_set_cursor_icon", { rid: this.rid, cursor });
   }
 
   /** Changes the position of the cursor in window coordinates. */
   setCursorPosition(position: Position): void {
-    core.opSync("pane_window_set_cursor_position", {
+    Plug.core.opSync("pane_window_set_cursor_position", {
       rid: this.rid,
       position,
     });
@@ -260,7 +250,7 @@ export class PaneWindow {
    * yourself if you want so.
    */
   setCursorGrab(grab: boolean): void {
-    core.opSync("pane_window_set_cursor_grab", { rid: this.rid, grab });
+    Plug.core.opSync("pane_window_set_cursor_grab", { rid: this.rid, grab });
   }
 
   /**
@@ -269,7 +259,7 @@ export class PaneWindow {
    * If `false`, this will hide the cursor. If `true`, this will show the cursor.
    */
   setCursorVisible(visible: boolean): void {
-    core.opSync("pane_window_set_cursor_visible", {
+    Plug.core.opSync("pane_window_set_cursor_visible", {
       rid: this.rid,
       visible,
     });
