@@ -1,7 +1,6 @@
 import { Plug } from "./deps.ts";
 import {
   CursorIcon,
-  Id,
   PaneEvent,
   PhysicalPosition,
   PhysicalSize,
@@ -33,7 +32,7 @@ export class PaneWindow {
   readonly rid: number;
 
   /** This pane windows unique id. */
-  get id(): Id {
+  get id(): number {
     return Plug.core.opSync("pane_window_id", this.rid);
   }
 
@@ -52,7 +51,7 @@ export class PaneWindow {
   /**
    * Emits a `redrawRequested` event in the event loop after all OS events have
    * been processed by the event loop.
-   * 
+   *
    * This is the strongly encouraged method of redrawing windows, as it can integrate
    * with OS-requested redraws (e.g. when a window gets resized).
    */
@@ -63,7 +62,7 @@ export class PaneWindow {
   /**
    * Returns the position of the top-left hand corner of the window's client area
    * relative to the top-left hand corner of the desktop.
-   * 
+   *
    * Note that the top-left hand corner of the desktop is not necessarily the same
    * as the screen. If the user uses a desktop with multiple monitors, the top-left
    * hand corner of the desktop is the top-left hand corner of the monitor at the
@@ -77,7 +76,7 @@ export class PaneWindow {
   /**
    * Returns the position of the top-left hand corner of the window relative to
    * the top-left hand corner of the desktop.
-   * 
+   *
    * Note that the top-left hand corner of the desktop is not necessarily the same
    * as the screen. If the user uses a desktop with multiple monitors, the top-left
    * hand corner of the desktop is the top-left hand corner of the monitor at the
@@ -98,7 +97,7 @@ export class PaneWindow {
 
   /**
    * Returns the physical size of the window's client area.
-   * 
+   *
    * The client area is the content of the window, excluding the title bar and borders.
    */
   innerSize(): PhysicalSize {
@@ -107,7 +106,7 @@ export class PaneWindow {
 
   /**
    * Modifies the inner size of the window.
-   * 
+   *
    * See `innerSize` for more information about the values. This automatically
    * un-maximizes the window if it's maximized.
    */
@@ -117,7 +116,7 @@ export class PaneWindow {
 
   /**
    * Returns the physical size of the entire window.
-   * 
+   *
    * These dimensions include the title bar and borders. If you don't want that
    * (and you usually don't), use `innerSize` instead.
    */
@@ -142,7 +141,7 @@ export class PaneWindow {
 
   /**
    * Modifies the window's visibility.
-   * 
+   *
    * If `false`, this will hide the window. If `true`, this will show the window.
    */
   setVisible(visible: boolean): void {
@@ -151,7 +150,7 @@ export class PaneWindow {
 
   /**
    * Sets whether the window is resizable or not.
-   * 
+   *
    * Note that making the window unresizable doesn't exempt you from handling
    * `resized`, as that event can still be triggered by DPI scaling, entering
    * fullscreen mode, etc.
@@ -168,6 +167,11 @@ export class PaneWindow {
   /** Sets the window to maximized or back. */
   setMaximized(maximized: boolean): void {
     Plug.core.opSync("pane_window_set_maximized", { rid: this.rid, maximized });
+  }
+
+  /** Gets the window’s current maximized state. */
+  isMaximized(): boolean {
+    return Plug.core.opSync("pane_window_is_maximized", this.rid);
   }
 
   /** Turn window decorations on or off. */
@@ -218,7 +222,7 @@ export class PaneWindow {
    * Requests user attention to the window, this has no effect if the application
    * is already focused. How requesting for user attention manifests is platform
    * dependent, see `UserAttentionType` for details.
-   * 
+   *
    * Providing no type will unset the request for user attention. Unsetting the
    * request for user attention might not be done automatically by the WM when
    * the window receives input.
@@ -245,7 +249,7 @@ export class PaneWindow {
 
   /**
    * Grabs the cursor, preventing it from leaving the window.
-   * 
+   *
    * There's no guarantee that the cursor will be hidden. You should hide it by
    * yourself if you want so.
    */
@@ -255,7 +259,7 @@ export class PaneWindow {
 
   /**
    * Modifies the cursor's visibility.
-   * 
+   *
    * If `false`, this will hide the cursor. If `true`, this will show the cursor.
    */
   setCursorVisible(visible: boolean): void {
@@ -263,5 +267,15 @@ export class PaneWindow {
       rid: this.rid,
       visible,
     });
+  }
+
+  /**
+   * Moves the window with the left mouse button until the button is released.
+   *
+   * There’s no guarantee that this will work unless the left mouse button was
+   * pressed immediately before this function is called.
+   */
+  dragWindow(): void {
+    Plug.core.opSync("pane_window_set_cursor_visible", this.rid);
   }
 }

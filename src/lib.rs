@@ -153,7 +153,7 @@ impl WindowResource {
     Ok(Self(winit::window::Window::new(event_loop)?))
   }
 
-  pub fn id(&self) -> u64 {
+  pub fn id(&self) -> u32 {
     hash(self.0.id())
   }
 }
@@ -196,6 +196,7 @@ pub fn init() -> Extension {
       ("pane_window_set_resizable", op_sync(window_set_resizable)),
       ("pane_window_set_minimized", op_sync(window_set_minimized)),
       ("pane_window_set_maximized", op_sync(window_set_maximized)),
+      ("pane_window_is_maximized", op_sync(window_is_maximized)),
       (
         "pane_window_set_decorations",
         op_sync(window_set_decorations),
@@ -232,6 +233,7 @@ pub fn init() -> Extension {
         "pane_window_set_cursor_visible",
         op_sync(window_set_cursor_visible),
       ),
+      ("pane_window_drag_window", op_sync(window_drag_window)),
     ])
     .build()
 }
@@ -289,7 +291,7 @@ fn window_id(
   state: &mut OpState,
   rid: ResourceId,
   _zero_copy: Option<ZeroCopyBuf>,
-) -> Result<u64, AnyError> {
+) -> Result<u32, AnyError> {
   let window = state
     .resource_table
     .get::<WindowResource>(rid)
@@ -513,6 +515,19 @@ fn window_set_maximized(
   Ok(())
 }
 
+fn window_is_maximized(
+  state: &mut OpState,
+  rid: ResourceId,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<bool, AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(rid)
+    .ok_or_else(bad_resource_id)?;
+
+  Ok(window.0.is_maximized())
+}
+
 fn window_set_decorations(
   state: &mut OpState,
   args: WindowDecorationsArgs,
@@ -645,6 +660,21 @@ fn window_set_cursor_visible(
     .ok_or_else(bad_resource_id)?;
 
   window.0.set_cursor_visible(args.visible);
+
+  Ok(())
+}
+
+fn window_drag_window(
+  state: &mut OpState,
+  rid: ResourceId,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<(), AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(rid)
+    .ok_or_else(bad_resource_id)?;
+
+  window.0.drag_window()?;
 
   Ok(())
 }

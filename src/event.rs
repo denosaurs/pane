@@ -70,12 +70,12 @@ pub enum Event {
   NewEvents(StartCause),
   #[serde(rename_all = "camelCase")]
   WindowEvent {
-    window_id: u64,
+    window_id: u32,
     event: WindowEvent,
   },
   #[serde(rename_all = "camelCase")]
   DeviceEvent {
-    device_id: u64,
+    device_id: u32,
     event: DeviceEvent,
   },
   UserEvent,
@@ -174,7 +174,7 @@ pub enum WindowEvent {
   Focused(bool),
   #[serde(rename_all = "camelCase")]
   KeyboardInput {
-    device_id: u64,
+    device_id: u32,
     #[serde(with = "KeyboardInputDef")]
     input: KeyboardInput,
     is_synthetic: bool,
@@ -182,20 +182,20 @@ pub enum WindowEvent {
   ModifiersChanged(ModifiersState),
   #[serde(rename_all = "camelCase")]
   CursorMoved {
-    device_id: u64,
+    device_id: u32,
     position: PhysicalPosition<f64>,
   },
   #[serde(rename_all = "camelCase")]
   CursorEntered {
-    device_id: u64,
+    device_id: u32,
   },
   #[serde(rename_all = "camelCase")]
   CursorLeft {
-    device_id: u64,
+    device_id: u32,
   },
   #[serde(rename_all = "camelCase")]
   MouseWheel {
-    device_id: u64,
+    device_id: u32,
     #[serde(with = "MouseScrollDeltaDef")]
     delta: MouseScrollDelta,
     #[serde(with = "TouchPhaseDef")]
@@ -203,7 +203,7 @@ pub enum WindowEvent {
   },
   #[serde(rename_all = "camelCase")]
   MouseInput {
-    device_id: u64,
+    device_id: u32,
     #[serde(with = "ElementStateDef")]
     state: ElementState,
     #[serde(with = "MouseButtonDef")]
@@ -211,13 +211,13 @@ pub enum WindowEvent {
   },
   #[serde(rename_all = "camelCase")]
   TouchpadPressure {
-    device_id: u64,
+    device_id: u32,
     pressure: f32,
     stage: i64,
   },
   #[serde(rename_all = "camelCase")]
   AxisMotion {
-    device_id: u64,
+    device_id: u32,
     axis: AxisId,
     value: f64,
   },
@@ -233,7 +233,7 @@ pub enum WindowEvent {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Touch {
-  device_id: u64,
+  device_id: u32,
   #[serde(with = "TouchPhaseDef")]
   phase: TouchPhase,
   location: PhysicalPosition<f64>,

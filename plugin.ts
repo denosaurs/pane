@@ -1,6 +1,6 @@
 import { Plug } from "./deps.ts";
 
-const VERSION = "0.2.0-pre.0";
+const VERSION = "0.2.0";
 const POLICY = Deno.env.get("PLUGIN_URL") === undefined
   ? Plug.CachePolicy.STORE
   : Plug.CachePolicy.NONE;

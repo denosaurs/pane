@@ -1,6 +1,3 @@
-/** A 64 bit uint identifier. */
-export type Id = bigint;
-
 /** A position that's either physical or logical. */
 export type Position = { physical: PhysicalPosition } | {
   logical: LogicalPosition;
@@ -81,12 +78,12 @@ export type PaneEvent =
   | {
     /** Emitted when the OS sends an event to a winit window. */
     type: "windowEvent";
-    value: { windowId: Id; event: WindowEvent };
+    value: { windowId: number; event: WindowEvent };
   }
   | {
     /** Emitted when the OS sends an event to a device. */
     type: "deviceEvent";
-    value: { deviceId: Id; event: DeviceEvent };
+    value: { deviceId: number; event: DeviceEvent };
   }
   | {
     /** Unused in pane. */
@@ -191,7 +188,7 @@ export type WindowEvent =
     value: string;
   }
   | {
-    /** 
+    /**
      * The window gained or lost focus. The parameter is true if the window has gained
      * focus, and false if it has lost focus.
      */
@@ -204,7 +201,7 @@ export type WindowEvent =
      */
     type: "keyboardInput";
     value: {
-      deviceId: Id;
+      deviceId: number;
       input: KeyboardInput;
       /**
       * If `true`, the event was generated synthetically by winit
@@ -228,36 +225,36 @@ export type WindowEvent =
   | {
     /** The cursor has moved on the window. */
     type: "cursorMoved";
-    value: { deviceId: Id; position: PhysicalPosition };
+    value: { deviceId: number; position: PhysicalPosition };
   }
   | {
     /**  The cursor has entered the window. */
     type: "cursorEntered";
-    value: { deviceId: Id };
+    value: { deviceId: number };
   }
   | {
     /** The cursor has left the window. */
     type: "cursorLeft";
-    value: { deviceId: Id };
+    value: { deviceId: number };
   }
   | {
     /** A mouse wheel movement or touchpad scroll occurred. */
     type: "mouseWheel";
-    value: { deviceId: Id; delta: MouseScrollDelta; phase: TouchPhase };
+    value: { deviceId: number; delta: MouseScrollDelta; phase: TouchPhase };
   }
   | {
     /** An mouse button press has been received. */
     type: "mouseInput";
-    value: { deviceId: Id; state: ElementState; button: MouseButton };
+    value: { deviceId: number; state: ElementState; button: MouseButton };
   }
   | {
     /** Touchpad pressure event.
-     * 
+     *
      * At the moment, only supported on Apple forcetouch-capable macbooks.
      */
     type: "touchpadPressure";
     value: {
-      deviceId: Id;
+      deviceId: number;
       /** A value between 0 and 1 representing how hard the touchpad is being pressed. */
       pressure: number;
       /** An integer representing the click level */
@@ -270,7 +267,7 @@ export type WindowEvent =
      * events.
      */
     type: "axisMotion";
-    value: { deviceId: Id; axis: AxisId; value: number };
+    value: { deviceId: number; axis: AxisId; value: number };
   }
   | {
     /** Touch event has been received */
@@ -517,7 +514,7 @@ export type MouseScrollDelta =
     type: "lineDelta";
     /**
      * Amount in lines or rows to scroll in the horizontal and vertical directions.
-     * 
+     *
      * Positive values indicate movement forward (away from the user) or rightwards.
      */
     value: [number, number];
@@ -526,7 +523,7 @@ export type MouseScrollDelta =
     type: "pixelDelta";
     /**
      * Amount in pixels to scroll in the horizontal and vertical direction.
-     * 
+     *
      * Scroll events are expressed as a PixelDelta if supported by the device
      * (eg. a touchpad) and platform.
      */
@@ -550,31 +547,31 @@ export type UserAttentionType =
 
 /**
  * Represents a touch event.
- * 
+ *
  * Every time the user touches the screen, a new `started` event with an unique
  * identifier for the finger is generated. When the finger is lifted, an
  * `ended` event is generated with the same finger id.
- * 
+ *
  * After a `started` event has been emitted, there may be zero or more `moved`
  * events when the finger is moved or the touch pressure changes.
- * 
+ *
  * The finger id may be reused by the system after an `ended` event. The user should
  * assume that a new `started` event received with the same id has nothing to do
  * with the old finger and is a new finger.
- * 
+ *
  * A `cancelled` event is emitted when the system has canceled tracking this touch,
  * such as when the window loses focus.
  */
 export type Touch = {
-  deviceId: Id;
+  deviceId: number;
   phase: TouchPhase;
   location: PhysicalPosition;
-  /** 
+  /**
    * Describes how hard the screen was pressed. May be `unknown` if the platform
    * does not support pressure sensitivity.
    */
   force?: Force;
-  id: number;
+  id: bigint;
 };
 
 /** Describes the force of a touch event. */
@@ -615,8 +612,8 @@ export type ModifiersState = {
  * as mouse movement, can produce both device and window events. Because window
  * events typically arise from virtual devices (corresponding to GUI cursors and
  * keyboard focus) the device IDs may not match.
- * 
- * Note that these events are delivered regardless of input focus. 
+ *
+ * Note that these events are delivered regardless of input focus.
  */
 export type DeviceEvent =
   | { type: "added" }
@@ -624,7 +621,7 @@ export type DeviceEvent =
   | {
     /**
      * Change in physical position of a pointing device.
-     * 
+     *
      * This represents raw, unfiltered physical motion. Not to be confused with
      * the `WindowEvent`.
      */
@@ -632,7 +629,7 @@ export type DeviceEvent =
     value: {
       /**
        * [x, y] change in position in unspecified units.
-       * 
+       *
        * Different devices may use different units.
        */
       delta: [number, number];
