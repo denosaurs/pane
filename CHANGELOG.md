@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog], and this project adheres to
 [Semantic Versioning].
 
+## [0.2.0] - 2021-05-17
+
+### Features
+
+- winit 0.25.0 ([`328c673`])
+- plug 0.3.0 ([`143b332`])
+
 ## [0.2.0-pre.0] - 2021-05-07
 
 ### Features
@@ -60,6 +67,9 @@ The format is based on [Keep a Changelog], and this project adheres to
 
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
+[0.2.0]: https://github.com/denosaurs/pane/compare/0.2.0-pre.0...0.2.0
+[`328c673`]: https://github.com/denosaurs/pane/commit/328c673ae70782736afcdf0a24b8b2620f81e747
+[`143b332`]: https://github.com/denosaurs/pane/commit/143b332f37402cc8f0a23d5ed6d1ad2c2b12fd83
 [0.2.0-pre.0]: https://github.com/denosaurs/pane/compare/0.1.3...0.2.0-pre.0
 [`02ba02a`]: https://github.com/denosaurs/pane/commit/02ba02a339ff832f163a8b1635774f96604009d3
 [0.1.3]: https://github.com/denosaurs/pane/compare/0.1.2...0.1.3
