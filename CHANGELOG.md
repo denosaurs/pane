@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog], and this project adheres to
 [Semantic Versioning].
 
+## [0.2.1] - 2021-05-18
+
+### Features
+
+- bump deps ([`4b158f5`])
+
 ## [0.2.0] - 2021-05-17
 
 ### Features
@@ -67,6 +73,8 @@ The format is based on [Keep a Changelog], and this project adheres to
 
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
+[0.2.1]: https://github.com/denosaurs/pane/compare/0.2.0...0.2.1
+[`4b158f5`]: https://github.com/denosaurs/pane/commit/4b158f549b2590bb46f78f77c4eb29c5cc10d9e1
 [0.2.0]: https://github.com/denosaurs/pane/compare/0.2.0-pre.0...0.2.0
 [`328c673`]: https://github.com/denosaurs/pane/commit/328c673ae70782736afcdf0a24b8b2620f81e747
 [`143b332`]: https://github.com/denosaurs/pane/commit/143b332f37402cc8f0a23d5ed6d1ad2c2b12fd83
