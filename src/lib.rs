@@ -165,7 +165,7 @@ impl Resource for WindowResource {
 }
 
 #[no_mangle]
-pub fn init() -> Extension {
+fn init() -> Extension {
   Extension::builder()
     .ops(vec![
       ("pane_event_loop_new", op_sync(event_loop_new)),
