@@ -164,6 +164,7 @@ impl Resource for WindowResource {
   }
 }
 
+#[cfg(feature = "init")]
 #[no_mangle]
 fn init() -> Extension {
   Extension::builder()
