@@ -1,7 +1,7 @@
 # pane
 
 [![Tags](https://img.shields.io/github/release/denosaurs/pane)](https://github.com/denosaurs/pane/releases)
-[![deno doc](https://doc.deno.land/badge.svg)](https://doc.deno.land/https/deno.land/x/plug/mod.ts)
+[![deno doc](https://doc.deno.land/badge.svg)](https://doc.deno.land/https/deno.land/x/pane/mod.ts)
 [![deno](https://github.com/denosaurs/pane/actions/workflows/deno.yml/badge.svg)](https://github.com/denosaurs/pane/actions/workflows/deno.yml)
 [![release](https://github.com/denosaurs/pane/actions/workflows/release.yml/badge.svg)](https://github.com/denosaurs/pane/actions/workflows/release.yml)
 [![rust](https://github.com/denosaurs/pane/actions/workflows/rust.yml/badge.svg)](https://github.com/denosaurs/pane/actions/workflows/rust.yml)
