@@ -30,7 +30,7 @@ use event::Event;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub enum UserAttentionType {
+enum UserAttentionType {
   Critical,
   Informational,
 }
@@ -146,7 +146,7 @@ impl Resource for EventLoopResource {
   }
 }
 
-struct WindowResource(Window);
+pub struct WindowResource(Window);
 
 impl WindowResource {
   pub fn new(event_loop: &EventLoop<()>) -> Result<Self, AnyError> {
