@@ -5,7 +5,7 @@ authors = ["Elias Sjögreen"]
 edition = "2018"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "lib"]
 
 [dependencies]
 deno_core = "0.88.0"
