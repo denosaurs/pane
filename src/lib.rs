@@ -28,6 +28,11 @@ mod helpers;
 
 use event::Event;
 
+pub mod resources {
+  pub use super::WindowResource;
+  pub use super::EventLoopResource;
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 enum UserAttentionType {
@@ -138,7 +143,7 @@ struct WindowCursorGrabArgs {
   grab: bool,
 }
 
-struct EventLoopResource(RefCell<EventLoop<()>>);
+pub struct EventLoopResource(RefCell<EventLoop<()>>);
 
 impl Resource for EventLoopResource {
   fn name(&self) -> Cow<str> {
