@@ -1,10 +1,13 @@
 # pane
 
 [![Tags](https://img.shields.io/github/release/denosaurs/pane)](https://github.com/denosaurs/pane/releases)
-[![Rust](https://img.shields.io/github/workflow/status/denosaurs/pane/rust)](https://github.com/denosaurs/pane/actions)
-[![Deno](https://img.shields.io/github/workflow/status/denosaurs/pane/deno)](https://github.com/denosaurs/pane/actions)
-[![Release](https://img.shields.io/github/workflow/status/denosaurs/pane/release)](https://github.com/denosaurs/pane/actions)
+[![deno doc](https://doc.deno.land/badge.svg)](https://doc.deno.land/https/deno.land/x/plug/mod.ts)
+[![deno](https://github.com/denosaurs/pane/actions/workflows/deno.yml/badge.svg)](https://github.com/denosaurs/pane/actions/workflows/deno.yml)
+[![release](https://github.com/denosaurs/pane/actions/workflows/release.yml/badge.svg)](https://github.com/denosaurs/pane/actions/workflows/release.yml)
+[![rust](https://github.com/denosaurs/pane/actions/workflows/rust.yml/badge.svg)](https://github.com/denosaurs/pane/actions/workflows/rust.yml)
 [![License](https://img.shields.io/github/license/denosaurs/pane)](https://github.com/denosaurs/pane/blob/master/LICENSE)
+[![Dependencies](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fdep-count%2Fhttps%2Fdeno.land%2Fx%2Fpane%2Fmod.ts)](https://deno-visualizer.danopia.net/dependencies-of/https/deno.land/x/pane/mod.ts)
+[![Dependency freshness](https://img.shields.io/endpoint?url=https%3A%2F%2Fdeno-visualizer.danopia.net%2Fshields%2Fupdates%2Fhttps%2Fdeno.land%2Fx%2Fpane%2Fmod.ts)](https://deno-visualizer.danopia.net/dependencies-of/https/deno.land/x/pane/mod.ts)
 
 ---
 
