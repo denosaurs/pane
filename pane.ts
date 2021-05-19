@@ -10,7 +10,7 @@ import {
 } from "./types.ts";
 
 /**
- * Represents a winit event loop
+ * Represents a winit event loop.
  */
 export class PaneEventLoop {
   readonly rid: number;
@@ -34,6 +34,16 @@ export class PaneWindow {
   /** This pane windows unique id. */
   get id(): number {
     return Plug.core.opSync("pane_window_id", this.rid);
+  }
+
+  /**
+   * This pane windows unique raw window handle.
+   *
+   * The main use of this is to be passed to Deno's WebGPU instance when creating
+   * a surface.
+   */
+  get raw_window_handle(): number {
+    return Plug.core.opSync("pane_window_raw_window_handle", this.rid);
   }
 
   constructor(eventLoop: PaneEventLoop) {

@@ -12,6 +12,7 @@ deno_core = "0.88.0"
 winit = { version = "0.25.0", features = ["serde"] }
 serde = { version = "1.0.125", features = ["derive"] }
 serde_millis = "0.1.1"
+raw-window-handle = "0.3.3"
 
 [features]
 default = ["init"]

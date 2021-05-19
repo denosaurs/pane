@@ -23,6 +23,9 @@ use winit::window::CursorIcon;
 use winit::window::Icon;
 use winit::window::Window;
 
+use raw_window_handle::HasRawWindowHandle;
+use raw_window_handle::RawWindowHandle;
+
 mod event;
 mod helpers;
 
@@ -138,6 +141,14 @@ struct WindowCursorGrabArgs {
   grab: bool,
 }
 
+pub struct RawWindowHandleResource(pub RawWindowHandle);
+
+impl Resource for RawWindowHandleResource {
+  fn name(&self) -> Cow<str> {
+    "rawWindowHandle".into()
+  }
+}
+
 pub struct EventLoopResource(pub RefCell<EventLoop<()>>);
 
 impl Resource for EventLoopResource {
@@ -173,6 +184,7 @@ fn init() -> Extension {
       ("pane_event_loop_step", op_sync(event_loop_step)),
       ("pane_window_new", op_sync(window_new)),
       ("pane_window_id", op_sync(window_id)),
+      ("pane_window_raw_window_handle", op_sync(window_raw_window_handle)),
       ("pane_window_scale_factor", op_sync(window_scale_factor)),
       ("pane_window_request_redraw", op_sync(window_request_redraw)),
       ("pane_window_inner_position", op_sync(window_inner_position)),
@@ -299,6 +311,25 @@ fn window_id(
     .ok_or_else(bad_resource_id)?;
 
   Ok(window.id())
+}
+
+fn window_raw_window_handle(
+  state: &mut OpState,
+  rid: ResourceId,
+  _zero_copy: Option<ZeroCopyBuf>,
+) -> Result<ResourceId, AnyError> {
+  let window = state
+    .resource_table
+    .get::<WindowResource>(rid)
+    .ok_or_else(bad_resource_id)?;
+
+  Ok(
+    state
+      .resource_table
+      .add::<RawWindowHandleResource>(
+        RawWindowHandleResource(window.0.raw_window_handle())
+      )
+  )
 }
 
 fn window_scale_factor(
