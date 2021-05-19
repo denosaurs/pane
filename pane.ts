@@ -30,24 +30,24 @@ export class PaneEventLoop {
  */
 export class PaneWindow {
   readonly rid: number;
-
-  /** This pane windows unique id. */
-  get id(): number {
-    return Plug.core.opSync("pane_window_id", this.rid);
-  }
-
   /**
    * This pane windows unique raw window handle.
    *
    * The main use of this is to be passed to Deno's WebGPU instance when creating
    * a surface.
    */
-  get raw_window_handle(): number {
-    return Plug.core.opSync("pane_window_raw_window_handle", this.rid);
+  readonly rawWindowHandleRid: number;
+
+  /** This pane windows unique id. */
+  get id(): number {
+    return Plug.core.opSync("pane_window_id", this.rid);
   }
 
   constructor(eventLoop: PaneEventLoop) {
-    this.rid = Plug.core.opSync("pane_window_new", eventLoop.rid);
+    [this.rawWindowHandleRid, this.rid] = Plug.core.opSync(
+      "pane_window_new",
+      eventLoop.rid,
+    );
   }
 
   /**
