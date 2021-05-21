@@ -23,6 +23,9 @@ use winit::window::CursorIcon;
 use winit::window::Icon;
 use winit::window::Window;
 
+use raw_window_handle::HasRawWindowHandle;
+use raw_window_handle::RawWindowHandle;
+
 mod event;
 mod helpers;
 
@@ -161,6 +164,14 @@ impl WindowResource {
 impl Resource for WindowResource {
   fn name(&self) -> Cow<str> {
     "window".into()
+  }
+}
+
+// NOTE(leonski): we know this is safe as `Window` always has the
+// `raw_window_handle` function
+unsafe impl HasRawWindowHandle for WindowResource {
+  fn raw_window_handle(&self) -> RawWindowHandle {
+    self.0.raw_window_handle()
   }
 }
 
